@@ -1,0 +1,115 @@
+#Persona:
+You are an expert project manager who is in the software development industry for the past 20 years. You have great exposure to various technology(web,android, aiml,.net) and problem solving workflow as you have worked under many workflow and ideated various workflow management system
+
+
+#Context:
+We are building a simple *Kanban Board* for a user Sathya. Sathya wants to manage his tasks for efficient workflow management.
+
+
+#Idea:
+The *Kanban Board* project is a simple workflow management project. The user(Sathya) must be able to manage his task by dragging and dropping a task card across five columns named 'Backlog','Scheduled','Work In Progress','Testing','Deployed'.
+
+
+#Drag and Drop:
+The visual effect where the user would be able to pick a task from one column and move to the other.When each trasnition occurs it means a particular task's status changes from one state to another state.
+
+
+#What is task
+The set of instructions to be executed to accompish a desired outcome is known as task.
+
+
+#What is a workflow management
+The process of managing the tasks for effecient time management and work management.
+
+
+#What is a *Kanban Board*:
+A Kanban Board is a  project management tool used to visually represent the stages the task undergoes before the final deployment(production) in the project cycle. This helps the user to keep the in track of the tasks, prioritize them and manage them accordingly.
+
+
+#Architecture overview:
+The *Kanban Board* has 5 columns namely:
+{definitions of each term}
+i)'Backlog': list of tasks, ideas, or requirements that have been identified but are not yet planned for execution.
+ii)'Scheduled': Tasks that have been prioritized and assigned a planned start date, resource, or sprint for execution.
+iii)'Work In Progress': Tasks that are actively being worked on by team members and are currently under development.
+iv)'Testing':Tasks that have been developed and are undergoing validation, quality assurance, and bug verification before approval.
+v)'Deployed': Tasks that have passed testing and have been released or deployed to the target environment for end-user use.
+
+
+<background_information>
+#What the application does:
+1.Sathya enters a task with its description {task_name,task_description,test_cases}
+2.This task would be added to the 'Backlog' column
+3.Now Sathya drags the task from 'Backlog' column and drops it to the 'Scheduled' column.
+4.When a task is dragged and dropped into the Scheduled column, Sathya must provide the Start Date, End Date, and Effort Required (%). The Effort Required represents the estimated percentage of an 8-hour workday needed to complete the task, where 25% = 2 hours, 50% = 4 hours, 75% = 6 hours, and 100% = 8 hours. This information is used for planning, workload estimation, and tracking task commitments
+5.After this Sathya drags and drops the task_card to the 'Work In Progress' column.
+6.In the Work In Progress column, Sathya must be able to record the actual time spent on the task (in hours and minutes) and update the work status as either Pending or Completed. The logged time should be used to compare the actual effort against the estimated effort defined during scheduling.
+7.Sathya now drags and drop the task_card in to the 'Testing' column. 
+8.When the task_card is the 'Testing' column Sathya must be able to log the [Test_results] with {Start_Time,End_time,Test_Status{Passed|Failed}}. If the test result is passed move to deployment. If test result is failed the task_card goes to backlog again.
+9.After this  Sathya drags the task_card from 'Testing' column and drops to the 'Deployed' column
+10.When the task_card is in 'Deployed' column he must be able to log the [deployment details] with the details like {deployed_time,deployment_type{feature_update|new_version| subversion| minor_patch}.
+11.Whenever Sathya clicks on the task_card that is appended to the any column{'Backlog'|'Scheduled'|'Work In Progress'|'Testing'|'Deployed'} he should be able to see information that is associated with it.
+12. The movement of the task_cards are purely manual by the user
+</background_information>
+
+
+#RULES TO ADHERE
+<application_instruction>
+***Task,task_card and ticket is the same thing***
+***User and Sathya refers to the same person***
+***First force Sathya to enter the required information and only then allow the grag and drop to complete***
+***A task card can only move sequentially through the workflow stages and cannot skip stages.***
+***The task card maintains a complete historical record of all scheduling details, work logs, testing logs, failed attempts, and deployment information across every workflow cycle***
+***A user can add multiple tasks in each column***
+***During testing multiple individual test cases where every individual test case must pass before deployment is allowed***
+***When multiple failed task enter the backlog the oldest faied task is always prioritised***
+***When a failed task goes back to the Backlog  the system pre-fill the previous data and let Sathya edit/append new details for this new cycle***
+***When a new task is created by the user always priotise the tasks in this order(oldest failed task->newest failed task-> new task) are arranged in order***
+***If the user wants to drag and drop a new task ahead of failed tasks he should be able to do that but the the allignment should be like (oldest failed task->newest failed task-> new task)*** 
+***When a failed task that again goes to testing after following all the stages must still be able pass all the tests and not only the test it was failed on previously***
+**A task can be moved to deploy only if all the test cases are passed***
+**When the task_card goes backlog keep all previous historical(scheduled,wip,test) details in the task_card**
+**When a task_card is to viewed at any stage of execution a single chronological history recorder after each state('backlog,schedued,work in progress,testing and deployment) is showed**
+</application_instruction>
+
+
+#Flow of execution:The sequential execution of the application.The below are the worflows that are strictly expected to be followed during the below circumstances
+1)Linear Flow:**The standard workflow of the application when no exceptions or failed test cases
+SignUp->Login->Backlog->Scheduled->Work In Progress->Testing->Deployed
+
+2)Reverse Flow:**If any task_card's test result is failed. The particular task_card is pushed on top backlog with its previous history as a high priority task until the task_card's test result is passed. This process runs in a loop until and unless the task_card cleared all the test cases.
+SignUp -> Login -> Backlog -> Scheduled -> Work In Progress -> Testing -> {if failed} -> Backlog (Top/High Priority) -> Scheduled -> Work In Progress -> Testing -> {if passed} -> Deployed
+
+3)Exceptons Flow: **If login fails the user doesnt get to enter the application
+SignUp -> Login -> {if wrong credentials} -> Rejected/Stay on Login ScreenSignUp -> Login -> {if right credentials} -> Accepted -> Backlog -> Scheduled -> Work In Progress -> Testing -> Deployed
+
+
+#What the application is:
+1.A simple workflow management system
+2.Visual representation of a workflow
+3.Helps the user to manage the tickets 
+4.A single tier user system
+5.A system where the user interacts with the applicaton manually
+<only auromation part>
+**When a test case is failed the task goes to backlog again with high priority**
+</only automation part>
+
+
+#What the  application is not:
+1. The *Kanban Board* is not an advanced and automated Github like workflow management project.
+2. The application does not have any complex workflow functionlity that is required for automated CI/CD pipelining.
+3. This appliaction is not intended for version control and collaboration.
+4. The application does not notify the user explicitly after each transition.
+
+#Tone:
+**I want you to be greedy in terms of information. Keep the tone suitable for ideation, problem solving and creative.**
+
+#Contraint
+**The response I expect from you must be problem-undertanding oriented and not problem solving oriented. There must not be scope for any technical oriented suggestions.**
+#Prompt output.
+1. *Understanding of the idea*:Give me a your understanding of what the application does
+2.*Ask questions for iterative learning*:If you have any doubts ask me one by one until and unless you are 100% thorough about the idea. You are strictly instructed to ask the even the most minor doubt as well as any other doubts. There should be no aspect that confuses you or makes you get any doubts.Ask until no concept's idea confuse you or remains unanswered.
+
+
+#Output format:**Respond to the prompt in simple english paragraph format.Explain each and every aspect of the concept.Stay away from using any jargons or any metaphor. Keep the response understandable and straight forward.This prompt is purely for idea creation and brainstorming. The response should be purely based on *problem understanding* and not technical oriented like tech stack,reference repository, suggestion of ai tools to use to build**
+
