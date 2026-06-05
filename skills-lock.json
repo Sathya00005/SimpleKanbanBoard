@@ -1,0 +1,125 @@
+{
+  "version": 1,
+  "skills": {
+    "ack": {
+      "source": "ssv445/claude-skills",
+      "sourceType": "github",
+      "skillPath": "ack/SKILL.md",
+      "computedHash": "9c044f62a9b0873c306bc79a7ca9d1af584d9d3af3923d82c0da417d1d31bd23"
+    },
+    "brainstorm": {
+      "source": "ssv445/claude-skills",
+      "sourceType": "github",
+      "skillPath": "brainstorm/SKILL.md",
+      "computedHash": "f61dec55d055f4be45208a68524ef67d30facfa43e288b954b8915e3c265fb0c"
+    },
+    "caveman-distillate": {
+      "source": "ssv445/claude-skills",
+      "sourceType": "github",
+      "skillPath": "caveman-distillate/SKILL.md",
+      "computedHash": "045541149b20272c518a7c48d9a279aaa81790acb17d3257a18937bc50c15bef"
+    },
+    "commit": {
+      "source": "ssv445/claude-skills",
+      "sourceType": "github",
+      "skillPath": "commit/SKILL.md",
+      "computedHash": "6c97d94cb56b683eb9d47669566a6733ce274922a18246815fcaaa8e566e7255"
+    },
+    "devloop": {
+      "source": "ssv445/claude-skills",
+      "sourceType": "github",
+      "skillPath": "devloop/SKILL.md",
+      "computedHash": "4627768d1b402303a4afb6a7769edd0ffcde8270f39c7375b826dbaeb6ecc814"
+    },
+    "eval-criteria": {
+      "source": "ssv445/claude-skills",
+      "sourceType": "github",
+      "skillPath": "eval-criteria/SKILL.md",
+      "computedHash": "08a8566425af5f75c55ba6f5ebfb072a9050720c79baa36fb52e5b77d14e23ab"
+    },
+    "gh-discussion": {
+      "source": "ssv445/claude-skills",
+      "sourceType": "github",
+      "skillPath": "gh-discussion/SKILL.md",
+      "computedHash": "d3e007c0e81032d5d82c1a45d0c2c866284d141d3ca70075e43d9128623aaf3b"
+    },
+    "handoff": {
+      "source": "ssv445/claude-skills",
+      "sourceType": "github",
+      "skillPath": "handoff/SKILL.md",
+      "computedHash": "79768e1cd825440e4feeb07150512952a7481641b36a25d104670f4e7d32f918"
+    },
+    "ios-safari-quirks": {
+      "source": "ssv445/claude-skills",
+      "sourceType": "github",
+      "skillPath": "ios-safari-quirks/SKILL.md",
+      "computedHash": "c9345c9e292faf68ba63c4a888dd6e1f8de2edc1c1188894bf77d789ea6cbc4d"
+    },
+    "nightshift": {
+      "source": "ssv445/claude-skills",
+      "sourceType": "github",
+      "skillPath": "nightshift/SKILL.md",
+      "computedHash": "ce4b6f889126ee8fbb0fa6d5cd0f72c26ce883d34859e201f17593f8a3d4bfc2"
+    },
+    "rca": {
+      "source": "ssv445/claude-skills",
+      "sourceType": "github",
+      "skillPath": "rca/SKILL.md",
+      "computedHash": "25db42f0e3519d1d7e604573abb90af10b7e99ab42f364252ad5dec2ebbbfe37"
+    },
+    "run-detached": {
+      "source": "ssv445/claude-skills",
+      "sourceType": "github",
+      "skillPath": "run-detached/SKILL.md",
+      "computedHash": "b7075ba7c54fdb1c33b266b1ea439909c72a7035cb477b2192ed2119e878b686"
+    },
+    "ship": {
+      "source": "ssv445/claude-skills",
+      "sourceType": "github",
+      "skillPath": "ship/SKILL.md",
+      "computedHash": "ed1c73950011d5912e2b7df05c8d578c79587a06a1baf45fcdc77ec20d441ec2"
+    },
+    "subagent-first": {
+      "source": "ssv445/claude-skills",
+      "sourceType": "github",
+      "skillPath": "subagent-first/SKILL.md",
+      "computedHash": "ecd07bf614545efd3be1517c6ab73dcc068ca87033abf94ace1d90698b0e11a7"
+    },
+    "taste-extract": {
+      "source": "ssv445/claude-skills",
+      "sourceType": "github",
+      "skillPath": "taste-extract/SKILL.md",
+      "computedHash": "9ce9be42519017f532748bf29073e1d9e73db719a025f6ccc7a2665ba2a937af"
+    },
+    "test-stories": {
+      "source": "ssv445/claude-skills",
+      "sourceType": "github",
+      "skillPath": "test-stories/SKILL.md",
+      "computedHash": "6889af541e9361a5f079eed788f5a40485972b7f34624703cefabfb518ae662f"
+    },
+    "theteam": {
+      "source": "ssv445/claude-skills",
+      "sourceType": "github",
+      "skillPath": "theteam/SKILL.md",
+      "computedHash": "610f178a7a2c153100250bc99ffed8f1d172df7068e41410fc641d40d97bae54"
+    },
+    "usage-check": {
+      "source": "ssv445/claude-skills",
+      "sourceType": "github",
+      "skillPath": "usage-check/SKILL.md",
+      "computedHash": "b979e7a76b0bdbae325a4bb6603e6120ae36069d02526cf207b99ade505c9cfe"
+    },
+    "write-blog": {
+      "source": "ssv445/claude-skills",
+      "sourceType": "github",
+      "skillPath": "write-blog/SKILL.md",
+      "computedHash": "f6dbc78e009539af2c4a9c19366703f56438be7ee29a98911696f0f5aab03647"
+    },
+    "xterm-js": {
+      "source": "ssv445/claude-skills",
+      "sourceType": "github",
+      "skillPath": "xterm-js/SKILL.md",
+      "computedHash": "f073ab238417045b570a42f8b6f8b572164b1776fb020ecb823bacc8e3466ee0"
+    }
+  }
+}

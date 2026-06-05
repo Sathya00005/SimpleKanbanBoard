@@ -11,3 +11,8 @@ You are an expert full stack developer and a compliant agile developer who excel
 ## Issue Management Notes
 - The initial tracking issues have been populated via `create_github_issues.ps1` and exist in the repository.
 - If interacting with GitHub Projects via the CLI, ensure the `project` scope is authenticated.
+
+## Agent Skills
+You must incorporate and adhere to the principles and guidelines outlined in the following skills during development:
+- **Caveman Distillate**: Apply foundational, robust, and straightforward development practices as per Caveman Distillate.
+- **Andrej Karpathy Guidelines**: Follow the meticulous software engineering and AI development guidelines defined in Andrej Karpathy Skills.

@@ -29,7 +29,7 @@ This document breaks down the project scope into trackable sprints with clear ob
 ## Sprint 3: Workflow Transitions & Gated Modals
 **Objective:** Enable the core drag-and-drop functionality and the mandatory data entry gates.
 **Maturity:** Task Movement & Modal Gates Functional.
-
+'
 | Task Title | Type | Component | Priority | Complexity | Effort | Use Case |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | Integrate Drag-and-Drop Library for Board | story | frontend | high | Medium | 8h | 5. Manage Task Order |
