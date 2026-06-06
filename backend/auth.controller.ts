@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
-import { user as dbUser } from './db'; // Corrected path to Prisma client instantiation
+import { user as dbUser } from './db.js'; // Corrected path to Prisma client instantiation
 
 const saltRounds = 12;
 

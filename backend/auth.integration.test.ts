@@ -2,7 +2,7 @@ import request from 'supertest';
 import bcrypt from 'bcrypt';
 import express from 'express';
 import { describe, it, expect, afterEach, jest } from '@jest/globals';
-import { signup, login } from './auth.controller';
+import { signup, login } from './auth.controller.js';
 
 // Define a local User type to avoid Prisma client generation dependency in tests
 interface User {
@@ -20,14 +20,14 @@ app.post('/api/auth/signup', signup);
 app.post('/api/auth/login', login);
 
 // Mock the Prisma database layer with a correct module path
-jest.mock('./db', () => ({
+jest.mock('./db.js', () => ({
   user: {
     create: jest.fn(),
     findUnique: jest.fn(),
   },
 }));
 
-import { user as dbUser } from './db'; // Corrected path to Prisma client instantiation
+import { user as dbUser } from './db.js'; // Corrected path to Prisma client instantiation
 
 describe('Auth Endpoints', () => {
   afterEach(() => {

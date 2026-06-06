@@ -9,7 +9,7 @@ const registerUser = async (req, res) => {
         return res.status(400).json({ error: 'Username, email, and password are required.' });
     }
 
-    try 
+    try {
         // Check if user already exists
         const existingUser = await db.query('SELECT id FROM users WHERE email = $1 OR username = $2', [email, username]);
         if (existingUser.rows.length > 0) {
@@ -31,7 +31,7 @@ const registerUser = async (req, res) => {
         console.error('Error during user registration:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
-};
+}
 
 module.exports = {
     registerUser

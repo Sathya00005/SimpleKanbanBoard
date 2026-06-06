@@ -1,6 +1,6 @@
 import express from 'express';
-import { sessionMiddleware, loginRateLimiter } from './session.config';
-import { signup, login } from './auth.controller';
+import { sessionMiddleware, loginRateLimiter } from './session.config.js';
+import { signup, login } from './auth.controller.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
