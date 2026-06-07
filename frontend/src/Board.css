@@ -1,0 +1,8 @@
+.kanban-board {
+  display: flex;
+  gap: 24px;
+  padding: 48px;
+  overflow-x: auto;
+  align-items: flex-start;
+  min-height: 100vh;
+}
