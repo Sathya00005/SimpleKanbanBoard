@@ -1,0 +1,16 @@
+.kanban-column {
+  background-color: var(--color-surface-blue);
+  border-radius: 32px;
+  padding: 24px;
+  min-width: 300px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.column-title {
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 1.4;
+  margin: 0 0 24px 0;
+}
