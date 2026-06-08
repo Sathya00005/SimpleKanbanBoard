@@ -204,6 +204,28 @@ app.get("/api/tasks/:userId", async (req, res) => {
   }
 });
 
+/* ---------------- UPDATE TASK STATUS ---------------- */
+
+app.put("/api/tasks/:taskId", async (req, res) => {
+  try {
+    const { taskId } = req.params;
+    const { status } = req.body;
+
+    const task = await prisma.task.update({
+      where: { id: taskId },
+      data: { status },
+    });
+
+    return res.json(task);
+  } catch (error) {
+    console.error("Update Task Error:", error);
+
+    return res.status(500).json({
+      error: "Failed to update task",
+    });
+  }
+});
+
 /* ---------------- DELETE TASK ---------------- */
 
 app.delete("/api/tasks/:taskId", async (req, res) => {
