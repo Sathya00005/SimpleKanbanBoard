@@ -1,74 +1,70 @@
 .auth-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
   min-height: 100vh;
-  background-color: var(--color-bg-primary);
-  padding: 24px;
-}
-
-.auth-surface {
-  background-color: var(--color-surface-white);
-  padding: 48px 40px;
-  border-radius: 32px;
-  width: 100%;
-  max-width: 440px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
   display: flex;
-  flex-direction: column;
-}
-
-.auth-surface h2 {
-  margin-top: 0;
-  margin-bottom: 24px;
-  font-size: 28px;
-  font-weight: 600;
-  color: var(--color-text-primary);
-  text-align: center;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(135deg, #e0f2fe, #f8fafc);
+  padding: 20px;
 }
 
 .auth-form {
+  width: 100%;
+  max-width: 420px;
+  background: white;
+  padding: 40px;
+  border-radius: 20px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.08);
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 18px;
+}
+
+.auth-container h2 {
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 32px;
+  color: #111827;
 }
 
 .auth-form input {
-  background-color: #F9FAFB;
-  border: 1px solid var(--color-border);
-  padding: 16px;
+  padding: 14px 16px;
+  border: 1px solid #d1d5db;
   border-radius: 12px;
-  font-size: 16px;
-  font-family: inherit;
-  color: var(--color-text-primary);
-  transition: border-color 0.2s ease;
+  font-size: 15px;
+  transition: 0.2s;
 }
 
 .auth-form input:focus {
   outline: none;
-  border-color: var(--color-surface-dark);
-}
-
-.auth-form input::placeholder {
-  color: var(--color-text-secondary);
+  border-color: #2563eb;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
 }
 
 .auth-form button {
-  margin-top: 8px;
-  width: 100%;
+  background: #111827;
+  color: white;
+  border: none;
+  padding: 14px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  transition: 0.2s;
+}
+
+.auth-form button:hover {
+  background: #1f2937;
+  transform: translateY(-1px);
 }
 
 .switch {
   text-align: center;
-  margin-top: 24px;
-  margin-bottom: 0;
-  font-size: 14px;
-  color: var(--color-text-secondary);
+  margin-top: 18px;
+  color: #2563eb;
   cursor: pointer;
-  transition: color 0.2s;
+  font-weight: 500;
 }
 
 .switch:hover {
-  color: var(--color-surface-dark);
   text-decoration: underline;
 }
