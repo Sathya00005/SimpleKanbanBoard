@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import type { Request, Response } from 'express';
+import { createTask, getTasks } from './task.controller.js';
 
 const app = express();
 const PORT = 3001;
@@ -42,6 +43,10 @@ app.post('/api/auth/login', (req: Request, res: Response) => {
         token: 'mock-token'
     });
 });
+
+// Tasks API
+app.post('/api/tasks', createTask);
+app.get('/api/tasks', getTasks);
 
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);

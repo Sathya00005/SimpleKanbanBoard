@@ -48,7 +48,7 @@ const SignUp = () => {
                 <input name="email" placeholder="Email" onChange={handleChange} />
                 <input name="password" type="password" placeholder="Password" onChange={handleChange} />
 
-                <button type="submit">Sign Up</button>
+                <button type="submit" className="btn-primary">Sign Up</button>
             </form>
 
             <p className="switch" onClick={() => navigate('/login')}>
