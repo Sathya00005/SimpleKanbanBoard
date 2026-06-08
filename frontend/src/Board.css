@@ -1,8 +1,21 @@
+.board-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.board-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px 48px;
+}
+
 .kanban-board {
   display: flex;
   gap: 24px;
-  padding: 48px;
+  padding: 0 48px 48px 48px;
   overflow-x: auto;
   align-items: flex-start;
-  min-height: 100vh;
+  flex: 1;
 }
