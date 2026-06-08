@@ -1,62 +1,67 @@
 :root {
-  /* Colors */
-  --color-bg-primary: #FAFAFA;
-  --color-surface-white: #FFFFFF;
-  --color-surface-blue: #EAF1FB;
-  --color-surface-dark: #222222;
+  --color-bg-primary: #f8fafc;
+  --color-surface-white: #ffffff;
+  --color-surface-dark: #111827;
+  --color-surface-blue: rgba(59, 130, 246, 0.15);
 
-  --color-text-primary: #1A1A1A;
-  --color-text-secondary: #666666;
-  --color-text-inverse: #FFFFFF;
+  --color-text-primary: #111827;
+  --color-text-secondary: #6b7280;
+  --color-text-inverse: #ffffff;
 
-  --color-border: #E5E7EB;
+  --color-border: #e5e7eb;
 
-  /* Typography */
-  --font-family-base: 'Inter', system-ui, -apple-system, sans-serif;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --radius-pill: 999px;
+}
 
-  /* Spacing & Radius */
-  --space-sm: 8px;
-  --space-md: 16px;
-  --space-lg: 24px;
-  --space-xl: 32px;
-  --space-2xl: 48px;
-  --radius-sm: 8px;
-  --radius-md: 16px;
-  --radius-lg: 24px;
-  --radius-xl: 32px;
-  --radius-pill: 9999px;
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 body {
-  margin: 0;
-  font-family: var(--font-family-base);
-  background-color: var(--color-bg-primary);
+  background: var(--color-bg-primary);
   color: var(--color-text-primary);
+  font-family:
+    Inter,
+    system-ui,
+    sans-serif;
+
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
 }
 
-/* Global Buttons */
+button {
+  font-family: inherit;
+}
+
 .btn-primary {
-  background-color: var(--color-surface-dark);
-  color: var(--color-text-inverse);
-  font-weight: 500;
-  padding: 12px 24px;
+  background: var(--color-surface-dark);
+  color: white;
   border: none;
   border-radius: var(--radius-pill);
+  padding: 12px 22px;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: 0.2s;
 }
-.btn-primary:hover { background-color: #000000; }
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+}
 
 .btn-secondary {
-  background-color: var(--color-surface-white);
-  color: var(--color-surface-dark);
-  font-weight: 500;
-  padding: 12px 24px;
+  background: white;
   border: 1px solid var(--color-border);
+  color: var(--color-text-primary);
   border-radius: var(--radius-pill);
+  padding: 12px 22px;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: 0.2s;
 }
-.btn-secondary:hover { background-color: #F3F4F6; }
+
+.btn-secondary:hover {
+  background: #f3f4f6;
+}

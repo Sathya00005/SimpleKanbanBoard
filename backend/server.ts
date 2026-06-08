@@ -1,55 +1,236 @@
-import express from 'express';
-import cors from 'cors';
-import type { Request, Response } from 'express';
-import { createTask, getTasks } from './task.controller.js';
+import express from "express";
+import cors from "cors";
+import { PrismaClient } from "@prisma/client";
 
 const app = express();
+const prisma = new PrismaClient();
+
 const PORT = 3001;
 
-// Middleware
-app.use(cors({
-    origin: 'http://localhost:5173',
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
-}));
+/* ---------------- MIDDLEWARE ---------------- */
+
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+  })
+);
 
 app.use(express.json());
 
+/* ---------------- HEALTH ---------------- */
 
-// Health
-app.get('/api/health', (req: Request, res: Response) => {
-    res.json({ status: 'ok' });
+app.get("/api/health", (req, res) => {
+  res.json({
+    status: "ok",
+    message: "Backend running",
+  });
 });
 
-// Signup
-app.post('/api/auth/signup', (req: Request, res: Response) => {
+/* ---------------- SIGNUP ---------------- */
+
+app.post("/api/auth/signup", async (req, res) => {
+  try {
     const { username, email, password } = req.body;
 
     if (!username || !email || !password) {
-        return res.status(400).json({ error: 'Missing fields' });
+      return res.status(400).json({
+        error: "All fields are required",
+      });
     }
 
-    return res.status(201).json({
-        message: 'User created successfully'
+    const existingUser = await prisma.user.findUnique({
+      where: { email },
     });
+
+    if (existingUser) {
+      return res.status(400).json({
+        error: "Email already registered",
+      });
+    }
+
+    const user = await prisma.user.create({
+      data: {
+        username,
+        email,
+        password,
+      },
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: "Account created successfully",
+      userId: user.id,
+    });
+  } catch (error) {
+    console.error("Signup Error:", error);
+
+    return res.status(500).json({
+      error: "Internal server error",
+    });
+  }
 });
 
-// Login
-app.post('/api/auth/login', (req: Request, res: Response) => {
+/* ---------------- LOGIN ---------------- */
+
+app.post("/api/auth/login", async (req, res) => {
+  try {
     const { email, password } = req.body;
 
-    return res.json({
-        message: 'Login successful',
-        token: 'mock-token'
+    const user = await prisma.user.findUnique({
+      where: {
+        email,
+      },
     });
+
+    if (!user) {
+      return res.status(401).json({
+        error: "Invalid email or password",
+      });
+    }
+
+    if (user.password !== password) {
+      return res.status(401).json({
+        error: "Invalid email or password",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Login successful",
+      userId: user.id,
+      username: user.username,
+    });
+  } catch (error) {
+    console.error("Login Error:", error);
+
+    return res.status(500).json({
+      error: "Internal server error",
+    });
+  }
 });
 
-// Tasks API
-app.post('/api/tasks', createTask);
-app.get('/api/tasks', getTasks);
+/* ---------------- GET USER ---------------- */
+
+app.get("/api/users/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const user = await prisma.user.findUnique({
+      where: {
+        id: userId,
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        error: "User not found",
+      });
+    }
+
+    return res.json({
+      id: user.id,
+      username: user.username,
+      email: user.email,
+    });
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      error: "Internal server error",
+    });
+  }
+});
+
+/* ---------------- CREATE TASK ---------------- */
+
+app.post("/api/tasks", async (req, res) => {
+  try {
+    const { name, description, userId } = req.body;
+
+    if (!name) {
+      return res.status(400).json({
+        error: "Task name is required",
+      });
+    }
+
+    if (!userId) {
+      return res.status(400).json({
+        error: "User ID is required",
+      });
+    }
+
+    const task = await prisma.task.create({
+      data: {
+        name,
+        description: description || "",
+        status: "Backlog",
+        userId,
+      },
+    });
+
+    return res.status(201).json(task);
+  } catch (error) {
+    console.error("Create Task Error:", error);
+
+    return res.status(500).json({
+      error: "Failed to create task",
+    });
+  }
+});
+
+/* ---------------- GET USER TASKS ---------------- */
+
+app.get("/api/tasks/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const tasks = await prisma.task.findMany({
+      where: {
+        userId,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    return res.json(tasks);
+  } catch (error) {
+    console.error("Get Tasks Error:", error);
+
+    return res.status(500).json({
+      error: "Failed to fetch tasks",
+    });
+  }
+});
+
+/* ---------------- DELETE TASK ---------------- */
+
+app.delete("/api/tasks/:taskId", async (req, res) => {
+  try {
+    const { taskId } = req.params;
+
+    await prisma.task.delete({
+      where: {
+        id: taskId,
+      },
+    });
+
+    return res.json({
+      success: true,
+      message: "Task deleted",
+    });
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      error: "Failed to delete task",
+    });
+  }
+});
+
+/* ---------------- START SERVER ---------------- */
 
 app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
-
-export { app };
