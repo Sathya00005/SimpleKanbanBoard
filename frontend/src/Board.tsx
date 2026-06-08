@@ -1,52 +1,111 @@
-import { useState } from 'react';
-import Column from './Column';
-import CreateTaskModal from './CreateTaskModal';
-import './Board.css';
+import { useEffect, useState } from "react";
+import "./Board.css";
 
-const BOARD_COLUMNS = [
-  'Backlog',
-  'Scheduled',
-  'Work In Progress',
-  'Testing',
-  'Deployed'
-];
+interface Task {
+  id: string;
+  name?: string;
+  title?: string;
+  description?: string;
+  status?: string;
+  columnStatus?: string;
+}
 
 interface BoardProps {
   setIsLoggedIn: (value: boolean) => void;
 }
 
-export default function Board({ setIsLoggedIn }: BoardProps) {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+const COLUMNS = ['Backlog', 'Scheduled', 'Work In Progress', 'Testing', 'Deployed'];
 
-  const handleCreateTask = (data: { name: string; description: string; testCases: string[] }) => {
-    console.log('Task created payload:', data);
-    setIsModalOpen(false);
-    // TODO: Phase 2.4 - Connect to backend API endpoint to create task
+export default function Board({ setIsLoggedIn }: BoardProps) {
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [name, setName] = useState("");
+
+  // GET TASKS
+  const fetchTasks = async () => {
+    try {
+      const res = await fetch("http://localhost:3001/api/tasks");
+      
+      if (!res.ok) {
+        throw new Error(`Failed to fetch tasks: ${res.statusText}`);
+      }
+
+      const text = await res.text();
+      if (text) {
+        const data = JSON.parse(text);
+        setTasks(data);
+      }
+    } catch (err) {
+      console.error("Error fetching tasks:", err);
+    }
   };
+
+  // CREATE TASK
+  const createTask = async () => {
+    try {
+      const res = await fetch("http://localhost:3001/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        let errorMessage = "Failed to create task";
+        try {
+          const errorData = JSON.parse(text);
+          errorMessage = errorData.error || errorMessage;
+        } catch (e) {}
+        throw new Error(errorMessage);
+      }
+
+      setName("");
+      fetchTasks();
+    } catch (err) {
+      console.error("Error creating task:", err);
+      alert(err instanceof Error ? err.message : "Error creating task");
+    }
+  };
+
+  useEffect(() => {
+    fetchTasks();
+  }, []);
 
   return (
     <div className="board-container">
       <header className="board-header">
-        <h1>Kanban Board</h1>
-        <div style={{ display: 'flex', gap: '16px' }}>
-          <button className="btn-secondary" onClick={() => setIsLoggedIn(false)}>
-            Logout
-          </button>
-          <button className="btn-primary" onClick={() => setIsModalOpen(true)} data-testid="btn-open-create-task">
-            + Create Task
-          </button>
+        <h2>Kanban Board</h2>
+        <div className="board-controls">
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Task name"
+          />
+          <button className="btn-primary" onClick={createTask}>Add Task</button>
+          <button className="btn-secondary" onClick={() => setIsLoggedIn(false)}>Logout</button>
         </div>
       </header>
-      <div className="kanban-board">
-        {BOARD_COLUMNS.map(col => (
-          <Column key={col} title={col} />
+
+      <div className="kanban-grid">
+        {COLUMNS.map((column) => (
+          <div key={column} className="kanban-column">
+            <h3>{column}</h3>
+            <ul className="kanban-card-list">
+              {tasks
+                .filter((t) => (t.columnStatus || t.status || 'Backlog') === column)
+                .map((t) => (
+                  <li key={t.id} className="kanban-card">
+                    <div className="kanban-card-header">
+                      <span className="kanban-card-id">#{t.id ? t.id.toString().substring(0, 6) : 'NEW'}</span>
+                      <span className="kanban-card-status">{t.columnStatus || t.status || 'Backlog'}</span>
+                    </div>
+                    <h4 className="kanban-card-title">{t.name || t.title}</h4>
+                    {t.description && <p className="kanban-card-desc">{t.description}</p>}
+                  </li>
+                ))}
+            </ul>
+          </div>
         ))}
       </div>
-      <CreateTaskModal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-        onSubmit={handleCreateTask} 
-      />
     </div>
   );
 }
