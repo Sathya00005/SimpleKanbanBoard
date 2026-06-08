@@ -39,7 +39,9 @@ export const getTasks = async (
   res: Response
 ) => {
   try {
-    const tasks = await prisma.task.findMany();
+    const tasks = await prisma.task.findMany({
+      orderBy: { id: "asc" }
+    });
 
     return res.status(200).json(tasks);
   } catch (error) {
