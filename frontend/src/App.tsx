@@ -1,18 +1,39 @@
-import './App.css'
-import Board from './Board'
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { useState } from 'react';
+import SignUp from './SignUp';
+import Login from './login';
+import Board from './Board';
 
 function App() {
-  const isLoggedIn = true
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  if (!isLoggedIn) {
     return (
-      <div>
-        <h1>Login Page</h1>
-      </div>
-    )
-  }
+        <Routes>
+            {/* Main board protected */}
+            <Route
+                path="/"
+                element={
+                    isLoggedIn ? (
+                        <Board setIsLoggedIn={setIsLoggedIn} />
+                    ) : (
+                        <Navigate to="/login" />
+                    )
+                }
+            />
 
-  return <Board />
+            {/* Signup → always goes to login after success */}
+            <Route
+                path="/signup"
+                element={<SignUp />}
+            />
+
+            {/* Login → sets isLoggedIn */}
+            <Route
+                path="/login"
+                element={<Login setIsLoggedIn={setIsLoggedIn} />}
+            />
+        </Routes>
+    );
 }
 
-export default App
+export default App;

@@ -1,7 +1,9 @@
 import request from 'supertest';
 import bcrypt from 'bcrypt';
 import express from 'express';
-import { describe, it, expect, afterEach, jest } from '@jest/globals';
+import pkg from '@jest/globals';
+const { describe, it, expect, afterEach } = pkg;
+declare var jest: any;
 import { signup, login } from './auth.controller.js';
 
 // Define a local User type to avoid Prisma client generation dependency in tests
@@ -16,6 +18,12 @@ interface User {
 // Set up an isolated Express app for routing the tests
 const app = express();
 app.use(express.json());
+
+// Add a dummy session middleware to prevent req.session from being undefined
+app.use((req, res, next) => {
+  (req as any).session = {};
+  next();
+});
 app.post('/api/auth/signup', signup);
 app.post('/api/auth/login', login);
 
@@ -51,7 +59,7 @@ describe('Auth Endpoints', () => {
         .send({ email: 'test@example.com', password: 'password123' });
 
       expect(res.statusCode).toEqual(201);
-      expect(res.body).toHaveProperty('message', 'User created successfully');
+      expect(res.body).toHaveProperty('message', 'User created successfully and logged in');
     });
 
     it('should return 400 if email or password is missing', async () => {

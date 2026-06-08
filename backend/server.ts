@@ -1,53 +1,50 @@
 import express from 'express';
-import { sessionMiddleware, loginRateLimiter } from './session.config.js';
-import { signup, login } from './auth.controller.js';
+import cors from 'cors';
+import type { Request, Response } from 'express';
+
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = 3001;
 
-// Middlewares
+// Middleware
+app.use(cors({
+    origin: 'http://localhost:5173',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 app.use(express.json());
-app.use(sessionMiddleware);
 
-// Auth routes
-app.post('/api/auth/login', loginRateLimiter, login);
-app.post('/api/auth/signup', signup);
 
-// Task schema validation endpoint
-app.post('/api/tasks/validate-schema', (req, res) => {
-  const { name, description } = req.body;
-
-  if (!name || typeof name !== 'string' || !name.trim()) {
-    return res.status(400).json({
-      valid: false,
-      error: 'Task name is required',
-    });
-  }
-
-  res.status(200).json({
-    valid: true,
-    task: {
-      name,
-      description,
-    },
-  });
+// Health
+app.get('/api/health', (req: Request, res: Response) => {
+    res.json({ status: 'ok' });
 });
 
-// Protected route example
-app.get('/api/profile', (req, res) => {
-  if (req.session.userId) {
-    res.json({
-      message: `Authenticated as user ${req.session.userId}`,
+// Signup
+app.post('/api/auth/signup', (req: Request, res: Response) => {
+    const { username, email, password } = req.body;
+
+    if (!username || !email || !password) {
+        return res.status(400).json({ error: 'Missing fields' });
+    }
+
+    return res.status(201).json({
+        message: 'User created successfully'
     });
-  } else {
-    res.status(401).json({
-      error: 'Unauthorized',
-    });
-  }
 });
 
-// Start server
+// Login
+app.post('/api/auth/login', (req: Request, res: Response) => {
+    const { email, password } = req.body;
+
+    return res.json({
+        message: 'Login successful',
+        token: 'mock-token'
+    });
+});
+
 app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+    console.log(`Server running on http://localhost:${PORT}`);
 });
 
 export { app };

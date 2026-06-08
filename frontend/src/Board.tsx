@@ -11,7 +11,11 @@ const BOARD_COLUMNS = [
   'Deployed'
 ];
 
-export default function Board() {
+interface BoardProps {
+  setIsLoggedIn: (value: boolean) => void;
+}
+
+export default function Board({ setIsLoggedIn }: BoardProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleCreateTask = (data: { name: string; description: string; testCases: string[] }) => {
@@ -24,9 +28,14 @@ export default function Board() {
     <div className="board-container">
       <header className="board-header">
         <h1>Kanban Board</h1>
-        <button className="btn-primary" onClick={() => setIsModalOpen(true)} data-testid="btn-open-create-task">
-          + Create Task
-        </button>
+        <div style={{ display: 'flex', gap: '16px' }}>
+          <button className="btn-secondary" onClick={() => setIsLoggedIn(false)}>
+            Logout
+          </button>
+          <button className="btn-primary" onClick={() => setIsModalOpen(true)} data-testid="btn-open-create-task">
+            + Create Task
+          </button>
+        </div>
       </header>
       <div className="kanban-board">
         {BOARD_COLUMNS.map(col => (

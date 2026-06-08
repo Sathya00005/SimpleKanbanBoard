@@ -4,8 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon --exec ts-node-esm server.ts",
-    "start": "node --loader ts-node/esm server.ts",
+    "dev": "nodemon --ignore test-results/ --ignore playwright-report/ --exec tsx server.ts",
+    "start": "tsx server.ts",
     "test": "playwright test"
   },
   "keywords": [],
@@ -24,6 +24,7 @@
   "devDependencies": {
     "@jest/globals": "^29.7.0",
     "@types/bcrypt": "^5.0.2",
+    "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/express-session": "^1.17.11",
     "@types/node": "^25.9.1",
@@ -32,6 +33,7 @@
     "prisma": "^6.19.0",
     "supertest": "^7.0.0",
     "ts-node": "^10.9.2",
+    "tsx": "^4.22.4",
     "typescript": "^6.0.3"
   }
 }

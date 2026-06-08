@@ -5,6 +5,9 @@ import { defineConfig, devices } from '@playwright/test';
  */
 export default defineConfig({
   testDir: '.', // Look for tests in the current directory
+  testMatch: ['**/*.spec.ts', '**/*.test.ts'],
+  // Let Jest handle integration tests; Playwright handles e2e and API tests
+  testIgnore: ['**/*.integration.test.*'],
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
   /* Retry on CI only */
