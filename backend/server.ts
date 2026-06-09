@@ -206,26 +206,83 @@ app.get("/api/tasks/:userId", async (req, res) => {
 
 /* ---------------- UPDATE TASK STATUS ---------------- */
 
+/* ---------------- UPDATE TASK STATUS ---------------- */
+
 app.put("/api/tasks/:taskId", async (req, res) => {
   try {
     const { taskId } = req.params;
-    const { status } = req.body;
 
-    const task = await prisma.task.update({
-      where: { id: taskId },
-      data: { status },
+    const {
+      status,
+      startDate,
+      endDate,
+      effortRequired,
+    } = req.body;
+
+    // Validate MongoDB ObjectId
+    if (!/^[a-fA-F0-9]{24}$/.test(taskId)) {
+      return res.status(400).json({
+        error: "Invalid task ID format",
+      });
+    }
+
+    const existingTask =
+      await prisma.task.findUnique({
+        where: {
+          id: taskId,
+        },
+      });
+
+    if (!existingTask) {
+      return res.status(404).json({
+        error: "Task not found",
+      });
+    }
+
+    const updateData: any = {};
+
+    if (status !== undefined) {
+      updateData.status = status;
+    }
+
+    if (startDate !== undefined) {
+      updateData.startDate =
+        new Date(startDate);
+    }
+
+    if (endDate !== undefined) {
+      updateData.endDate =
+        new Date(endDate);
+    }
+
+    if (effortRequired !== undefined) {
+      updateData.effortRequired =
+        Number(effortRequired);
+    }
+
+    const updatedTask =
+      await prisma.task.update({
+        where: {
+          id: taskId,
+        },
+        data: updateData,
+      });
+
+    return res.status(200).json({
+      success: true,
+      task: updatedTask,
     });
-
-    return res.json(task);
   } catch (error) {
-    console.error("Update Task Error:", error);
+    console.error(
+      "Update Task Error:",
+      error
+    );
 
     return res.status(500).json({
       error: "Failed to update task",
     });
   }
 });
-
 /* ---------------- DELETE TASK ---------------- */
 
 app.delete("/api/tasks/:taskId", async (req, res) => {
