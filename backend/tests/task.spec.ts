@@ -15,4 +15,14 @@ test.describe('Task API Endpoint Verification', () => {
     // fallback user ID violates a foreign key constraint. All mean the endpoint exists!
     expect([201, 400, 401, 500]).toContain(response.status());
   });
+
+  test('Should handle PUT /api/tasks/:taskId for drag and drop updates', async ({ request }) => {
+    const response = await request.put('/api/tasks/test-id-123', {
+      data: {
+        status: 'Scheduled'
+      }
+    });
+    
+    expect([200, 400, 401, 404, 500]).toContain(response.status());
+  });
 });

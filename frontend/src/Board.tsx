@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import "./Board.css";
 import CreateTaskModal from "./CreateTaskModal";
-import Column from "./Column";
+import { DndContext, useDroppable, useDraggable, closestCorners } from "@dnd-kit/core";
+import type { DragEndEvent } from "@dnd-kit/core";
+import { CSS } from "@dnd-kit/utilities";
 import type { Task } from "./types";
 
 interface BoardProps {
@@ -137,6 +139,34 @@ export default function Board({
     return columnTasks;
   };
 
+  /* ---------------- DRAG AND DROP ---------------- */
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over) return;
+
+    const taskId = active.id as string;
+    const newStatus = over.id as string;
+
+    const task = tasks.find((t) => t.id === taskId);
+    if (!task || (task.status || "Backlog") === newStatus) return;
+
+    // Optimistic UI Update
+    setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t)));
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/tasks/${taskId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (!res.ok) throw new Error("Failed to update status on server");
+    } catch (error) {
+      console.error("Drag and Drop Error:", error);
+      fetchTasks(); // Revert on failure
+    }
+  };
+
   return (
     <div className="board-container">
       <header className="board-header">
@@ -166,15 +196,17 @@ export default function Board({
         </div>
       </header>
 
-      <div className="kanban-grid">
-        {COLUMNS.map((column) => (
-          <Column 
-            key={column} 
-            title={column} 
-            tasks={getSortedTasksForColumn(column)} 
-          />
-        ))}
-      </div>
+      <DndContext collisionDetection={closestCorners} onDragEnd={handleDragEnd}>
+        <div className="kanban-grid">
+          {COLUMNS.map((column) => (
+            <DroppableColumn 
+              key={column} 
+              title={column} 
+              tasks={getSortedTasksForColumn(column)} 
+            />
+          ))}
+        </div>
+      </DndContext>
 
       <CreateTaskModal
         isOpen={isModalOpen}
@@ -183,6 +215,43 @@ export default function Board({
         }
         onSubmit={createTask}
       />
+    </div>
+  );
+}
+
+/* ---------------- DND COMPONENTS ---------------- */
+
+function DroppableColumn({ title, tasks }: { title: string; tasks: Task[] }) {
+  const { setNodeRef, isOver } = useDroppable({ id: title });
+  return (
+    <div 
+      ref={setNodeRef} 
+      className="kanban-column"
+      style={{ border: isOver ? "2px dashed #2563eb" : "2px solid transparent" }}
+    >
+      <h3>{title}</h3>
+      {tasks.map((t) => (
+        <DraggableCard key={t.id} task={t} />
+      ))}
+    </div>
+  );
+}
+
+function DraggableCard({ task }: { task: Task }) {
+  const { attributes, listeners, setNodeRef, transform } = useDraggable({ id: task.id });
+  
+  const style = transform ? { 
+    transform: CSS.Translate.toString(transform),
+    zIndex: 999,
+  } : undefined;
+
+  return (
+    <div ref={setNodeRef} style={style} {...listeners} {...attributes} className="kanban-card">
+      <div className="kanban-card-header">
+        <span className="kanban-card-status">{task.status || "Backlog"}</span>
+      </div>
+      <h4 className="kanban-card-title">{task.name}</h4>
+      <p className="kanban-card-desc">{task.description}</p>
     </div>
   );
 }
