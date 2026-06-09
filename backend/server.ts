@@ -213,12 +213,14 @@ app.put("/api/tasks/:taskId", async (req, res) => {
     const { taskId } = req.params;
 
     const {
-      status,
-      startDate,
-      endDate,
-      effortRequired,
-      workStatus,
-    } = req.body;
+  status,
+  startDate,
+  endDate,
+  effortRequired,
+  workStatus,
+  deployedTime,
+  deploymentType,
+} = req.body;
 
     // Validate MongoDB ObjectId
     if (!/^[a-fA-F0-9]{24}$/.test(taskId)) {
@@ -263,6 +265,14 @@ app.put("/api/tasks/:taskId", async (req, res) => {
 
     if (workStatus !== undefined) {
       updateData.workStatus = workStatus;
+    }
+
+    if (deployedTime !== undefined) {
+      updateData.deployedTime = new Date(deployedTime);
+    }
+
+    if (deploymentType !== undefined) {
+      updateData.deploymentType = deploymentType;
     }
 
     const updatedTask =
