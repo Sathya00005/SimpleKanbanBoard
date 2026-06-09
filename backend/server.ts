@@ -217,6 +217,7 @@ app.put("/api/tasks/:taskId", async (req, res) => {
       startDate,
       endDate,
       effortRequired,
+      workStatus,
     } = req.body;
 
     // Validate MongoDB ObjectId
@@ -258,6 +259,10 @@ app.put("/api/tasks/:taskId", async (req, res) => {
     if (effortRequired !== undefined) {
       updateData.effortRequired =
         Number(effortRequired);
+    }
+
+    if (workStatus !== undefined) {
+      updateData.workStatus = workStatus;
     }
 
     const updatedTask =

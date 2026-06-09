@@ -141,6 +141,23 @@ export default function Board({
     return columnTasks;
   };
 
+  /* ---------------- TOGGLE WORK STATUS ---------------- */
+  const toggleWorkStatus = async (taskId: string, currentWorkStatus: string | undefined) => {
+    const newWorkStatus = currentWorkStatus === "Completed" ? "Pending" : "Completed";
+    setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, workStatus: newWorkStatus } : t)));
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/tasks/${taskId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ workStatus: newWorkStatus }),
+      });
+      if (!res.ok) throw new Error("Failed to update work status");
+    } catch (error) {
+      console.error(error);
+      fetchTasks(); // Revert on failure
+    }
+  };
+
   /* ---------------- DRAG AND DROP ---------------- */
 
   const handleDragEnd = async (event: DragEndEvent) => {
@@ -152,6 +169,22 @@ export default function Board({
 
     const task = tasks.find((t) => t.id === taskId);
     if (!task || (task.status || "Backlog") === newStatus) return;
+
+    const currentStatus = task.status || "Backlog";
+    const currentIdx = COLUMNS.indexOf(currentStatus);
+    const newIdx = COLUMNS.indexOf(newStatus);
+
+    // Sequential Check: Forward only (1 step)
+    if (newIdx !== currentIdx + 1) {
+      alert(`Tasks can only move sequentially to the next stage. Cannot skip stages or move from ${currentStatus} to ${newStatus}.`);
+      return; // Stop transition
+    }
+
+    // Gated Transition: Work In Progress -> Testing
+    if (newStatus === "Testing" && (task as any).workStatus !== "Completed") {
+      alert("Task must be marked as 'Completed' before moving to Testing.");
+      return; // Stop transition
+    }
 
     // Optimistic UI Update
     setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t)));
@@ -243,6 +276,7 @@ export default function Board({
               key={column} 
               title={column} 
               tasks={getSortedTasksForColumn(column)} 
+              onToggleWorkStatus={toggleWorkStatus}
             />
           ))}
         </div>
@@ -261,7 +295,7 @@ export default function Board({
 
 /* ---------------- DND COMPONENTS ---------------- */
 
-function DroppableColumn({ title, tasks }: { title: string; tasks: Task[] }) {
+function DroppableColumn({ title, tasks, onToggleWorkStatus }: { title: string; tasks: Task[]; onToggleWorkStatus: (id: string, status: string | undefined) => void }) {
   const { setNodeRef, isOver } = useDroppable({ id: title });
   return (
     <div 
@@ -271,13 +305,13 @@ function DroppableColumn({ title, tasks }: { title: string; tasks: Task[] }) {
     >
       <h3>{title}</h3>
       {tasks.map((t) => (
-        <DraggableCard key={t.id} task={t} />
+        <DraggableCard key={t.id} task={t} onToggleWorkStatus={onToggleWorkStatus} />
       ))}
     </div>
   );
 }
 
-function DraggableCard({ task }: { task: Task }) {
+function DraggableCard({ task, onToggleWorkStatus }: { task: Task; onToggleWorkStatus: (id: string, status: string | undefined) => void }) {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({ id: task.id });
   
   const style = transform ? { 
@@ -292,6 +326,22 @@ function DraggableCard({ task }: { task: Task }) {
       </div>
       <h4 className="kanban-card-title">{task.name}</h4>
       <p className="kanban-card-desc">{task.description}</p>
+      {task.status === "Work In Progress" && (
+        <div 
+          className="kanban-card-actions" 
+          onPointerDown={(e) => e.stopPropagation()}
+          style={{ marginTop: "12px" }}
+        >
+          <label style={{ fontSize: "12px", display: "flex", alignItems: "center", gap: "6px", cursor: "pointer" }}>
+            <input 
+              type="checkbox" 
+              checked={(task as any).workStatus === "Completed"} 
+              onChange={() => onToggleWorkStatus(task.id, (task as any).workStatus)} 
+            />
+            Mark as Completed
+          </label>
+        </div>
+      )}
     </div>
   );
 }
