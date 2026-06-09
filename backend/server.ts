@@ -1,11 +1,12 @@
 import express from "express";
+import type { Request, Response } from "express";
 import cors from "cors";
 import { PrismaClient } from "@prisma/client";
+import type { User, Task } from "@prisma/client";;
 
 const app = express();
 const prisma = new PrismaClient();
-
-const PORT = 3001;
+const PORT: number = 3001;
 
 /* ---------------- MIDDLEWARE ---------------- */
 
@@ -15,46 +16,37 @@ app.use(
     credentials: true,
   })
 );
-
 app.use(express.json());
 
 /* ---------------- HEALTH ---------------- */
 
-app.get("/api/health", (req, res) => {
-  res.json({
-    status: "ok",
-    message: "Backend running",
-  });
+app.get("/api/health", (req: Request, res: Response) => {
+  res.json({ status: "ok", message: "Backend running" });
 });
 
 /* ---------------- SIGNUP ---------------- */
 
-app.post("/api/auth/signup", async (req, res) => {
+interface SignupBody {
+  username?: string;
+  email?: string;
+  password?: string;
+}
+
+app.post("/api/auth/signup", async (req: Request<{}, {}, SignupBody>, res: Response): Promise<any> => {
   try {
     const { username, email, password } = req.body;
 
     if (!username || !email || !password) {
-      return res.status(400).json({
-        error: "All fields are required",
-      });
+      return res.status(400).json({ error: "All fields are required" });
     }
 
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
-    });
-
+    const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
-      return res.status(400).json({
-        error: "Email already registered",
-      });
+      return res.status(400).json({ error: "Email already registered" });
     }
 
-    const user = await prisma.user.create({
-      data: {
-        username,
-        email,
-        password,
-      },
+    const user: User = await prisma.user.create({
+      data: { username, email, password },
     });
 
     return res.status(201).json({
@@ -64,35 +56,29 @@ app.post("/api/auth/signup", async (req, res) => {
     });
   } catch (error) {
     console.error("Signup Error:", error);
-
-    return res.status(500).json({
-      error: "Internal server error",
-    });
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
 /* ---------------- LOGIN ---------------- */
 
-app.post("/api/auth/login", async (req, res) => {
+interface LoginBody {
+  email?: string;
+  password?: string;
+}
+
+app.post("/api/auth/login", async (req: Request<{}, {}, LoginBody>, res: Response): Promise<any> => {
   try {
     const { email, password } = req.body;
 
-    const user = await prisma.user.findUnique({
-      where: {
-        email,
-      },
-    });
-
-    if (!user) {
-      return res.status(401).json({
-        error: "Invalid email or password",
-      });
+    if (!email || !password) {
+      return res.status(400).json({ error: "Email and password are required" });
     }
 
-    if (user.password !== password) {
-      return res.status(401).json({
-        error: "Invalid email or password",
-      });
+    const user = await prisma.user.findUnique({ where: { email } });
+
+    if (!user || user.password !== password) {
+      return res.status(401).json({ error: "Invalid email or password" });
     }
 
     return res.status(200).json({
@@ -103,64 +89,45 @@ app.post("/api/auth/login", async (req, res) => {
     });
   } catch (error) {
     console.error("Login Error:", error);
-
-    return res.status(500).json({
-      error: "Internal server error",
-    });
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
 /* ---------------- GET USER ---------------- */
 
-app.get("/api/users/:userId", async (req, res) => {
+app.get("/api/users/:userId", async (req: Request<{ userId: string }>, res: Response): Promise<any> => {
   try {
     const { userId } = req.params;
-
-    const user = await prisma.user.findUnique({
-      where: {
-        id: userId,
-      },
-    });
+    const user = await prisma.user.findUnique({ where: { id: userId } });
 
     if (!user) {
-      return res.status(404).json({
-        error: "User not found",
-      });
+      return res.status(404).json({ error: "User not found" });
     }
 
-    return res.json({
-      id: user.id,
-      username: user.username,
-      email: user.email,
-    });
+    return res.json({ id: user.id, username: user.username, email: user.email });
   } catch (error) {
     console.error(error);
-
-    return res.status(500).json({
-      error: "Internal server error",
-    });
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
 /* ---------------- CREATE TASK ---------------- */
 
-app.post("/api/tasks", async (req, res) => {
+interface CreateTaskBody {
+  name?: string;
+  description?: string;
+  userId?: string;
+}
+
+app.post("/api/tasks", async (req: Request<{}, {}, CreateTaskBody>, res: Response): Promise<any> => {
   try {
     const { name, description, userId } = req.body;
 
-    if (!name) {
-      return res.status(400).json({
-        error: "Task name is required",
-      });
+    if (!name || !userId) {
+      return res.status(400).json({ error: "Task name and User ID are required" });
     }
 
-    if (!userId) {
-      return res.status(400).json({
-        error: "User ID is required",
-      });
-    }
-
-    const task = await prisma.task.create({
+    const task: Task = await prisma.task.create({
       data: {
         name,
         description: description || "",
@@ -172,158 +139,111 @@ app.post("/api/tasks", async (req, res) => {
     return res.status(201).json(task);
   } catch (error) {
     console.error("Create Task Error:", error);
-
-    return res.status(500).json({
-      error: "Failed to create task",
-    });
+    return res.status(500).json({ error: "Failed to create task" });
   }
 });
 
 /* ---------------- GET USER TASKS ---------------- */
 
-app.get("/api/tasks/:userId", async (req, res) => {
+app.get("/api/tasks/:userId", async (req: Request<{ userId: string }>, res: Response): Promise<any> => {
   try {
     const { userId } = req.params;
-
-    const tasks = await prisma.task.findMany({
-      where: {
-        userId,
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
+    const tasks: Task[] = await prisma.task.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
     });
 
     return res.json(tasks);
   } catch (error) {
     console.error("Get Tasks Error:", error);
-
-    return res.status(500).json({
-      error: "Failed to fetch tasks",
-    });
+    return res.status(500).json({ error: "Failed to fetch tasks" });
   }
 });
 
-/* ---------------- UPDATE TASK STATUS ---------------- */
+/* ---------------- UPDATE TASK STATUS & METRICS ---------------- */
 
-/* ---------------- UPDATE TASK STATUS ---------------- */
+interface UpdateTaskBody {
+  status?: string;
+  startDate?: string;
+  endDate?: string;
+  effortRequired?: string | number;
+  workStatus?: string;
+  deployedTime?: string;
+  deploymentType?: string;
+}
 
-app.put("/api/tasks/:taskId", async (req, res) => {
+interface PrismaUpdateData {
+  status?: string;
+  workStatus?: string;
+  deploymentType?: string;
+  startDate?: Date;
+  endDate?: Date;
+  deployedTime?: Date;
+  effortRequired?: number;
+}
+
+app.put("/api/tasks/:taskId", async (req: Request<{ taskId: string }, {}, UpdateTaskBody>, res: Response): Promise<any> => {
   try {
     const { taskId } = req.params;
-
     const {
-  status,
-  startDate,
-  endDate,
-  effortRequired,
-  workStatus,
-  deployedTime,
-  deploymentType,
-} = req.body;
+      status,
+      startDate,
+      endDate,
+      effortRequired,
+      workStatus,
+      deployedTime,
+      deploymentType,
+    } = req.body;
 
-    // Validate MongoDB ObjectId
-    if (!/^[a-fA-F0-9]{24}$/.test(taskId)) {
-      return res.status(400).json({
-        error: "Invalid task ID format",
-      });
+    if (taskId.length === 24 && !/^[a-fA-F0-9]{24}$/.test(taskId)) {
+      return res.status(400).json({ error: "Invalid task ID format" });
     }
 
-    const existingTask =
-      await prisma.task.findUnique({
-        where: {
-          id: taskId,
-        },
-      });
-
+    const existingTask = await prisma.task.findUnique({ where: { id: taskId } });
     if (!existingTask) {
-      return res.status(404).json({
-        error: "Task not found",
-      });
+      return res.status(404).json({ error: "Task not found" });
     }
 
-    const updateData: any = {};
+    const updateData: PrismaUpdateData = {};
 
-    if (status !== undefined) {
-      updateData.status = status;
-    }
-
-    if (startDate !== undefined) {
-      updateData.startDate =
-        new Date(startDate);
-    }
-
-    if (endDate !== undefined) {
-      updateData.endDate =
-        new Date(endDate);
-    }
-
+    if (status !== undefined) updateData.status = status;
+    if (workStatus !== undefined) updateData.workStatus = workStatus;
+    if (deploymentType !== undefined) updateData.deploymentType = deploymentType;
+    
+    // Dates are safely converted to ISO objects here inside the execution block
+    if (startDate) updateData.startDate = new Date(startDate);
+    if (endDate) updateData.endDate = new Date(endDate);
+    if (deployedTime) updateData.deployedTime = new Date(deployedTime);
+    
     if (effortRequired !== undefined) {
-      updateData.effortRequired =
-        Number(effortRequired);
+      updateData.effortRequired = Number(effortRequired);
     }
 
-    if (workStatus !== undefined) {
-      updateData.workStatus = workStatus;
-    }
-
-    if (deployedTime !== undefined) {
-      updateData.deployedTime = new Date(deployedTime);
-    }
-
-    if (deploymentType !== undefined) {
-      updateData.deploymentType = deploymentType;
-    }
-
-    const updatedTask =
-      await prisma.task.update({
-        where: {
-          id: taskId,
-        },
-        data: updateData,
-      });
-
-    return res.status(200).json({
-      success: true,
-      task: updatedTask,
+    const updatedTask: Task = await prisma.task.update({
+      where: { id: taskId },
+      data: updateData,
     });
+
+    return res.status(200).json({ success: true, task: updatedTask });
   } catch (error) {
-    console.error(
-      "Update Task Error:",
-      error
-    );
-
-    return res.status(500).json({
-      error: "Failed to update task",
-    });
+    console.error("Update Task Error:", error);
+    return res.status(500).json({ error: "Failed to update task" });
   }
 });
+
 /* ---------------- DELETE TASK ---------------- */
 
-app.delete("/api/tasks/:taskId", async (req, res) => {
+app.delete("/api/tasks/:taskId", async (req: Request<{ taskId: string }>, res: Response): Promise<any> => {
   try {
     const { taskId } = req.params;
+    await prisma.task.delete({ where: { id: taskId } });
 
-    await prisma.task.delete({
-      where: {
-        id: taskId,
-      },
-    });
-
-    return res.json({
-      success: true,
-      message: "Task deleted",
-    });
+    return res.json({ success: true, message: "Task deleted" });
   } catch (error) {
     console.error(error);
-
-    return res.status(500).json({
-      error: "Failed to delete task",
-    });
+    return res.status(500).json({ error: "Failed to delete task" });
   }
 });
-
-/* ---------------- START SERVER ---------------- */
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);

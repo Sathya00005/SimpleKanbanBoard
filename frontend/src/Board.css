@@ -2,6 +2,7 @@
   min-height: 100vh;
   background: #f8fafc;
   padding: 24px;
+  font-family: system-ui, -apple-system, sans-serif;
 }
 
 .board-header {
@@ -14,6 +15,12 @@
 .board-header h2 {
   font-size: 32px;
   color: #111827;
+  margin: 0 0 4px 0;
+}
+
+.board-header p {
+  color: #6b7280;
+  margin: 0;
 }
 
 .board-controls {
@@ -28,23 +35,38 @@
   width: 260px;
 }
 
-.btn-primary {
+/* Button UI variants */
+.btn-primary, .board-controls button[type="submit"], .modal-actions button[type="submit"] {
   background: #111827;
   color: white;
   border: none;
   padding: 12px 18px;
   border-radius: 12px;
+  font-weight: 500;
   cursor: pointer;
+  transition: background 0.2s ease;
 }
 
-.btn-secondary {
+.btn-primary:hover, .board-controls button[type="submit"]:hover, .modal-actions button[type="submit"]:hover {
+  background: #1f2937;
+}
+
+.btn-secondary, .board-controls button:not([type="submit"]), .modal-actions button[type="button"] {
   background: white;
   border: 1px solid #d1d5db;
+  color: #374151;
   padding: 12px 18px;
   border-radius: 12px;
+  font-weight: 500;
   cursor: pointer;
+  transition: background 0.2s ease;
 }
 
+.btn-secondary:hover, .board-controls button:not([type="submit"]):hover, .modal-actions button[type="button"]:hover {
+  background: #f9fafb;
+}
+
+/* Grid Matrix Layout */
 .kanban-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
@@ -53,90 +75,159 @@
 
 .kanban-column {
   background: white;
+  border: 2px solid transparent;
   border-radius: 18px;
   padding: 16px;
   min-height: 500px;
   box-shadow: 0 8px 20px rgba(0,0,0,.05);
+  transition: border-color 0.2s ease;
 }
 
 .kanban-column h3 {
+  margin-top: 0;
   margin-bottom: 16px;
   text-align: center;
   color: #374151;
+  font-size: 18px;
 }
 
+/* Draggable Kanban cards */
 .kanban-card {
   background: #f9fafb;
   border-radius: 14px;
-  padding: 14px;
+  padding: 16px;
   margin-bottom: 12px;
   border-left: 4px solid #2563eb;
   list-style: none;
+  cursor: grab;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
 }
 
-.kanban-card-title {
-  margin-top: 8px;
-  margin-bottom: 8px;
+.kanban-card:active {
+  cursor: grabbing;
+}
+
+.kanban-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(0,0,0,.08);
+  background: #ffffff;
+}
+
+.kanban-card h4 {
+  margin: 0 0 8px 0;
   color: #111827;
+  font-size: 16px;
 }
 
-.kanban-card-desc {
+.kanban-card p {
   color: #6b7280;
   font-size: 14px;
+  margin: 0 0 12px 0;
+  line-height: 1.4;
 }
 
-.kanban-card-header {
+/* Inner card action blocks */
+.card-controls {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px dashed #e5e7eb;
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 10px;
 }
 
-.kanban-card-status {
-  font-size: 12px;
-  background: #dbeafe;
-  color: #1d4ed8;
-  padding: 4px 8px;
-  border-radius: 999px;
-}
-
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(4px);
+.card-controls label {
   display: flex;
   align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #4b5563;
+  cursor: pointer;
+}
+
+.card-controls input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #2563eb;
+}
+
+.card-controls button {
+  width: 100%;
+  background: #2563eb;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.card-controls button:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.card-controls button:disabled {
+  background: #e5e7eb;
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+/* Modals & Backdrop Layering */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
   justify-content: center;
-  z-index: 1000;
+  align-items: center;
+  z-index: 9999;
+  backdrop-filter: blur(2px);
 }
 
 .modal-content {
-  background: var(--color-surface-white, #ffffff);
-  padding: 40px;
-  border-radius: 32px;
-  width: 400px;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+  background: white;
+  padding: 28px;
+  border-radius: 16px;
+  min-width: 420px;
+  box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+}
+
+.modal-content h3 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  color: #111827;
+  font-size: 20px;
 }
 
 .form-group {
-  margin-bottom: 16px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  margin-bottom: 16px;
 }
 
 .form-group label {
-  font-size: 14px;
+  margin-bottom: 6px;
   font-weight: 500;
+  font-size: 14px;
+  color: #374151;
 }
 
-.form-group input {
-  padding: 16px;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  background: #f9fafb;
+.form-group input,
+.form-group select {
+  padding: 10px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #111827;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
 
 .modal-actions {
