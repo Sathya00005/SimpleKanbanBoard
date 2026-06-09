@@ -26,6 +26,8 @@ export default function Board({
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isModalOpen, setIsModalOpen] =
     useState(false);
+  const [schedulingTask, setSchedulingTask] = useState<Task | null>(null);
+  const [scheduleFormData, setScheduleFormData] = useState({ startDate: "", endDate: "", effortRequired: "" });
 
   const userId = localStorage.getItem("userId");
   const username = localStorage.getItem("username");
@@ -154,6 +156,12 @@ export default function Board({
     // Optimistic UI Update
     setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t)));
 
+    // Gated Transition: Backlog -> Scheduled
+    if (newStatus === "Scheduled" && (task.status || "Backlog") === "Backlog") {
+      setSchedulingTask(task);
+      return; // Wait for modal submission before hitting the API
+    }
+
     try {
       const res = await fetch(`${API_BASE_URL}/api/tasks/${taskId}`, {
         method: "PUT",
@@ -165,6 +173,38 @@ export default function Board({
       console.error("Drag and Drop Error:", error);
       fetchTasks(); // Revert on failure
     }
+  };
+
+  const handleScheduleSubmit = async () => {
+    if (!schedulingTask) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/tasks/${schedulingTask.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: "Scheduled",
+          startDate: new Date(scheduleFormData.startDate).toISOString(),
+          endDate: new Date(scheduleFormData.endDate).toISOString(),
+          effortRequired: parseInt(scheduleFormData.effortRequired, 10),
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to schedule task");
+      setSchedulingTask(null);
+      setScheduleFormData({ startDate: "", endDate: "", effortRequired: "" });
+    } catch (error) {
+      console.error("Scheduling Error:", error);
+      // Revert optimistic update on error
+      setTasks((prev) => prev.map((t) => (t.id === schedulingTask.id ? { ...t, status: schedulingTask.status || "Backlog" } : t)));
+      setSchedulingTask(null);
+    }
+  };
+
+  const handleScheduleCancel = () => {
+    if (!schedulingTask) return;
+    // Revert optimistic UI on cancel
+    setTasks((prev) => prev.map((t) => (t.id === schedulingTask.id ? { ...t, status: schedulingTask.status || "Backlog" } : t)));
+    setSchedulingTask(null);
+    setScheduleFormData({ startDate: "", endDate: "", effortRequired: "" });
   };
 
   return (
