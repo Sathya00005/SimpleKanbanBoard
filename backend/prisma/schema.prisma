@@ -18,13 +18,22 @@ model User {
 }
 
 model Task {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  name        String
-  description String?
-  status      String   @default("Backlog")
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
 
-  userId      String   @db.ObjectId
-  user        User     @relation(fields: [userId], references: [id])
+  name            String
+  description     String?
 
-  createdAt   DateTime @default(now())
+  status          String
+
+  startDate       DateTime?
+  endDate         DateTime?
+
+  effortRequired  Int?
+
+  workStatus      String?
+
+  createdAt       DateTime @default(now())
+
+  userId          String   @db.ObjectId
+  user            User     @relation(fields: [userId], references: [id])
 }
