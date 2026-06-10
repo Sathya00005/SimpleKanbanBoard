@@ -5,12 +5,13 @@ export interface Task {
   status: string;
   userId: string;
   createdAt: string;
-  
-  // 🔽 ADD THESE NEW FIELDS TO MATCH THE CURRENT ARCHITECTURE 🔽
-  workStatus?: string;       // e.g., "Pending" | "Completed"
+  workStatus?: string;
   startDate?: string | null;
   endDate?: string | null;
   effortRequired?: number | null;
   deployedTime?: string | null;
   deploymentType?: string | null;
+  
+  // 🔽 ADD THIS LINE TO DEFINE THE ARRAY PASS-THROUGH 🔽
+  testCases?: string[]; 
 }

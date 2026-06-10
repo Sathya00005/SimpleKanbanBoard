@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import WipTaskModal from "./WipTaskModal"; 
-import "./Board.css";
+import TestingTaskModal from "./TestingTaskModal";
 import CreateTaskModal from "./CreateTaskModal";
+import "./Board.css";
 import { DndContext, useDroppable, useDraggable, closestCorners, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import type { DragEndEvent } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
@@ -18,17 +19,18 @@ export default function Board({ setIsLoggedIn }: BoardProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  /* ✅ FIXED: State hook now correctly moved inside the component block */
+  /* Sprint 4 Interactive Gating Overlay States */
   const [wipLogTask, setWipLogTask] = useState<Task | null>(null);
+  const [testingGateTask, setTestingGateTask] = useState<Task | null>(null);
 
-  /* Gated Modal States */
+  /* Core Transition Interceptive Modal States */
   const [schedulingTask, setSchedulingTask] = useState<Task | null>(null);
   const [scheduleFormData, setScheduleFormData] = useState({ startDate: "", endDate: "", effortRequired: "" });
 
   const [deployingTask, setDeployingTask] = useState<Task | null>(null);
   const [deployFormData, setDeployFormData] = useState({ deployedTime: "", deploymentType: "feature_update" });
 
-  /* Sensors prevent action button selection from accidentally initiating element dragging layouts */
+  /* Sensors prevent child buttons from triggering unexpected item drag events */
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { delay: 80, tolerance: 5 } })
   );
@@ -47,7 +49,9 @@ export default function Board({ setIsLoggedIn }: BoardProps) {
     }
   };
 
-  useEffect(() => { fetchTasks(); }, []);
+  useEffect(() => {
+    fetchTasks();
+  }, []);
 
   const createTask = async (taskData: { name: string; description: string }) => {
     try {
@@ -103,8 +107,6 @@ export default function Board({ setIsLoggedIn }: BoardProps) {
       });
       if (!res.ok) throw new Error("Deployment failed");
 
-      setTasks(prev => prev.map(t => t.id === deployingTask.id ? { ...t, status: "Deployed" } : t));
-      deployingTask;
       setDeployingTask(null);
       setDeployFormData({ deployedTime: "", deploymentType: "feature_update" });
       fetchTasks();
@@ -134,19 +136,10 @@ export default function Board({ setIsLoggedIn }: BoardProps) {
 
   const moveToTesting = async (taskId: string) => {
     const task = tasks.find(t => t.id === taskId);
-    if (!task || (task as any).workStatus !== "Completed") {
+    if (!task || task.workStatus !== "Completed") {
       return alert("Task must be marked Completed before moving to Testing.");
     }
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/tasks/${taskId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "Testing" }),
-      });
-      if (res.ok) fetchTasks();
-    } catch (err) {
-      console.error(err);
-    }
+    setTestingGateTask(task);
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {
@@ -164,8 +157,12 @@ export default function Board({ setIsLoggedIn }: BoardProps) {
     if (newIdx !== currentIdx + 1) {
       return alert("You can only move cards step-by-step.");
     }
-    if (newStatus === "Testing" && (task as any).workStatus !== "Completed") {
-      return alert("Complete work requirements before moving to Testing.");
+    if (newStatus === "Testing") {
+      if (task.workStatus !== "Completed") {
+        return alert("Complete work requirements before moving to Testing.");
+      }
+      setTestingGateTask(task);
+      return;
     }
     if (newStatus === "Scheduled") {
       setSchedulingTask(task);
@@ -210,15 +207,16 @@ export default function Board({ setIsLoggedIn }: BoardProps) {
               tasks={tasks.filter(t => (t.status || "Backlog") === col)}
               onToggleWorkStatus={toggleWorkStatus}
               onMoveToTesting={moveToTesting}
-              onSelectTaskForLog={setWipLogTask} /* ✅ Pass setter down to columns */
+              onSelectTaskForLog={setWipLogTask}
             />
           ))}
         </div>
       </DndContext>
 
+      {/* Task Initialization Form Modal */}
       <CreateTaskModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSubmit={createTask} />
 
-      {/* ✅ WORK IN PROGRESS TRACKING PROGRESS MODAL */}
+      {/* SPRINT 4 ISSUE 1: WORK IN PROGRESS LOGGING SUB-MODAL */}
       {wipLogTask && (
         <WipTaskModal 
           task={wipLogTask} 
@@ -227,6 +225,27 @@ export default function Board({ setIsLoggedIn }: BoardProps) {
             fetchTasks(); 
             setWipLogTask(null); 
           }} 
+        />
+      )}
+
+      {/* SPRINT 4 ISSUE 2: GATED TESTING CASE VERIFICATION MODAL */}
+      {testingGateTask && (
+        <TestingTaskModal 
+          task={testingGateTask}
+          onClose={() => setTestingGateTask(null)}
+          onUpdate={async () => {
+            try {
+              await fetch(`${API_BASE_URL}/api/tasks/${testingGateTask.id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ status: "Testing" }),
+              });
+              fetchTasks();
+            } catch (err) {
+              console.error(err);
+            }
+            setTestingGateTask(null);
+          }}
         />
       )}
 
@@ -249,8 +268,8 @@ export default function Board({ setIsLoggedIn }: BoardProps) {
                 <input type="number" required value={scheduleFormData.effortRequired} onChange={e => setScheduleFormData({...scheduleFormData, effortRequired: e.target.value})} />
               </div>
               <div className="modal-actions">
-                <button type="button" onClick={() => setSchedulingTask(null)}>Cancel</button>
-                <button type="submit">Confirm Schedule</button>
+                <button type="button" className="btn-secondary" onClick={() => setSchedulingTask(null)}>Cancel</button>
+                <button type="submit" className="btn-primary">Confirm Schedule</button>
               </div>
             </form>
           </div>
@@ -276,8 +295,8 @@ export default function Board({ setIsLoggedIn }: BoardProps) {
                 </select>
               </div>
               <div className="modal-actions">
-                <button type="button" onClick={() => setDeployingTask(null)}>Cancel</button>
-                <button type="submit">Complete Deployment</button>
+                <button type="button" className="btn-secondary" onClick={() => setDeployingTask(null)}>Cancel</button>
+                <button type="submit" className="btn-primary">Complete Deployment</button>
               </div>
             </form>
           </div>
@@ -298,7 +317,7 @@ function DroppableColumn({ title, tasks, onToggleWorkStatus, onMoveToTesting, on
           task={t} 
           onToggleWorkStatus={onToggleWorkStatus} 
           onMoveToTesting={onMoveToTesting} 
-          onSelectTaskForLog={onSelectTaskForLog} /* ✅ Pass down to cards */
+          onSelectTaskForLog={onSelectTaskForLog} 
         />
       ))}
     </div>
@@ -317,7 +336,6 @@ function DraggableCard({ task, onToggleWorkStatus, onMoveToTesting, onSelectTask
       {...attributes} 
       className="kanban-card"
       onDoubleClick={() => {
-        /* ✅ Double clicking a Work in Progress card fires the execution modal */
         if (task.status === "Work In Progress") {
           onSelectTaskForLog(task);
         }
@@ -331,7 +349,7 @@ function DraggableCard({ task, onToggleWorkStatus, onMoveToTesting, onSelectTask
           <label>
             <input
               type="checkbox"
-              checked={(task as any).workStatus === "Completed"}
+              checked={task.workStatus === "Completed"}
               onChange={() => onToggleWorkStatus(task.id, task.workStatus)}
             />
             Completed

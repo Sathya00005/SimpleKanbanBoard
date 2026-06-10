@@ -315,7 +315,99 @@ app.patch("/api/tasks/:taskId/status", async (req: Request<{ taskId: string }, {
     return res.status(500).json({ error: "Server error while modifying work status" });
   }
 });
+/* ---------------- SPRINT 4: GATED TEST VERDICTS REGISTRATION & REVERSE FLOW ---------------- */
+interface TestRunPayload {
+  name: string;
+  startTime: string;
+  endTime: string;
+  status: "Passed" | "Failed";
+}
 
+interface TestResultsBody {
+  results?: TestRunPayload[];
+}
+
+app.post("/api/tasks/:taskId/test-results", async (req: Request<{ taskId: string }, {}, TestResultsBody>, res: Response): Promise<any> => {
+  try {
+    const { taskId } = req.params;
+    const { results } = req.body;
+
+    if (!results || !Array.isArray(results)) {
+      return res.status(400).json({ error: "Invalid test results payload structure." });
+    }
+
+    const existingTask = await prisma.task.findUnique({ where: { id: taskId } });
+    if (!existingTask) {
+      return res.status(404).json({ error: "Target workflow task not found." });
+    }
+
+    let allPassed = true;
+
+    // Use Prisma Transactions to match your original database integrity guarantees
+    await prisma.$transaction(async (tx) => {
+      for (const run of results) {
+        // 1. Log the test case execution run run metrics
+        await tx.timeLog.create({
+          data: {
+            taskId,
+            logDate: new Date(run.startTime),
+            hoursSpent: Math.abs(new Date(run.endTime).getTime() - new Date(run.startTime).getTime()) / 3600000, // Converts delta times to hours
+            description: `Test Case: [${run.name}] evaluated with verdict status: ${run.status}`,
+          },
+        });
+
+        // 2. Write into audit history track list
+        await tx.taskHistory.create({
+          data: {
+            taskId,
+            eventType: "TEST_RUN",
+            details: `Test Run [${run.name}] finished. Execution verdict state: ${run.status}`,
+          },
+        });
+
+        // Check if a single test target flag drops to Failed
+        if (run.status === "Failed") {
+          allPassed = false;
+        }
+      }
+
+      // 3. 🚨 AUTOMATIC REVERSE FLOW INTERCEPTOR LOGIC
+      if (!allPassed) {
+        await tx.task.update({
+          where: { id: taskId },
+          data: { 
+            status: "Backlog",     // Kick card back to column 0
+            workStatus: "Pending"  // Reset checkbox control flag state
+          },
+        });
+
+        await tx.taskHistory.create({
+          data: {
+            taskId,
+            eventType: "TEST_FAILED",
+            details: "Task failed validation testing suite and was automatically reversed back to Backlog.",
+          },
+        });
+      }
+    });
+
+    if (!allPassed) {
+      return res.status(200).json({ 
+        success: true, 
+        message: "Tests failed! Task has been automatically moved back to the Backlog column." 
+      });
+    }
+
+    return res.status(200).json({ 
+      success: true, 
+      message: "All validation tests passed! Your task is verified and ready for deployment features." 
+    });
+
+  } catch (error) {
+    console.error("Test Results Processing Error:", error);
+    return res.status(500).json({ error: "Internal server exception handling execution validation matrices." });
+  }
+});
 /* ---------------- DELETE TASK ---------------- */
 
 app.delete("/api/tasks/:taskId", async (req: Request<{ taskId: string }>, res: Response): Promise<any> => {
