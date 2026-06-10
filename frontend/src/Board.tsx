@@ -3,7 +3,9 @@ import WipTaskModal from "./WipTaskModal";
 import TestingTaskModal from "./TestingTaskModal";
 import CreateTaskModal from "./CreateTaskModal";
 import "./Board.css";
-import { DndContext, useDroppable, closestCorners, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";import type { DragEndEvent } from "@dnd-kit/core";
+// Added DragOverlay component to fix the drag lockup bug
+import { DndContext, useDroppable, closestCorners, PointerSensor, useSensor, useSensors, DragOverlay } from "@dnd-kit/core";
+import type { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { Task } from "./types";
@@ -18,6 +20,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3001
 export default function Board({ setIsLoggedIn }: BoardProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [activeTask, setActiveTask] = useState<Task | null>(null); // Track currently dragged item
 
   /* Sprint 4 Interactive Gating Overlay States */
   const [wipLogTask, setWipLogTask] = useState<Task | null>(null);
@@ -142,25 +145,39 @@ export default function Board({ setIsLoggedIn }: BoardProps) {
     setTestingGateTask(task);
   };
 
+  const handleDragStart = (event: DragStartEvent) => {
+    const task = tasks.find(t => t.id === event.active.id);
+    if (task) setActiveTask(task);
+  };
+
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
+    setActiveTask(null); // Clear active item cache
     if (!over) return;
 
     const taskId = active.id as string;
     const overId = over.id as string;
 
     const task = tasks.find(t => t.id === taskId);
-    const overTask = tasks.find(t => t.id === overId);
     if (!task) return;
 
-    // Determine if we dropped over a column directly or over another task card
-    const newStatus = overTask ? (overTask.status || "Backlog") : overId;
+    // 1. Correctly isolate the destination status
+    let newStatus = overId;
+    const overTask = tasks.find(t => t.id === overId);
     
-    const currentIdx = COLUMNS.indexOf(task.status || "Backlog");
+    if (overTask) {
+      newStatus = overTask.status || "Backlog";
+    }
+
+    // Safeguard: If the destination string isn't part of our tracking columns array, reject it
+    if (!COLUMNS.includes(newStatus)) return;
+
+    const currentStatus = task.status || "Backlog";
+    const currentIdx = COLUMNS.indexOf(currentStatus);
     const newIdx = COLUMNS.indexOf(newStatus);
 
-    // Handle Intra-Column Sorting (Reordering within the same column)
-    if (task.status === newStatus) {
+    // 2. Handle Intra-Column Sorting (Moving cards up/down in the same lane)
+    if (currentStatus === newStatus) {
       if (taskId !== overId) {
         setTasks((prevTasks) => {
           const oldIndex = prevTasks.findIndex((t) => t.id === taskId);
@@ -171,9 +188,15 @@ export default function Board({ setIsLoggedIn }: BoardProps) {
       return;
     }
 
-    // Handle Inter-Column Transitions
+    // 3. Handle Strict Step-by-Step Transition Validation Gating
     if (newIdx !== currentIdx + 1) {
       return alert("You can only move cards step-by-step.");
+    }
+
+    // 4. Intercept target phases to bring up data forms
+    if (newStatus === "Scheduled") {
+      setSchedulingTask(task);
+      return;
     }
     if (newStatus === "Testing") {
       if (task.workStatus !== "Completed") {
@@ -182,24 +205,24 @@ export default function Board({ setIsLoggedIn }: BoardProps) {
       setTestingGateTask(task);
       return;
     }
-    if (newStatus === "Scheduled") {
-      setSchedulingTask(task);
-      return;
-    }
     if (newStatus === "Deployed") {
       setDeployingTask(task);
       return;
     }
 
+    // 5. Normal workflow updates (e.g., Scheduled -> Work In Progress)
     try {
-      await fetch(`${API_BASE_URL}/api/tasks/${taskId}`, {
+      const res = await fetch(`${API_BASE_URL}/api/tasks/${taskId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: newStatus }),
       });
-      fetchTasks();
-    } catch {
-      fetchTasks();
+      if (res.ok) {
+        fetchTasks();
+      }
+    } catch (error) {
+      console.error("Failed to move card smoothly:", error);
+      fetchTasks(); // Snaps card back into place locally on network error
     }
   };
 
@@ -216,7 +239,7 @@ export default function Board({ setIsLoggedIn }: BoardProps) {
         </div>
       </header>
 
-      <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={handleDragEnd}>
+      <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <div className="kanban-grid">
           {COLUMNS.map(col => (
             <DroppableColumn
@@ -226,15 +249,28 @@ export default function Board({ setIsLoggedIn }: BoardProps) {
               onToggleWorkStatus={toggleWorkStatus}
               onMoveToTesting={moveToTesting}
               onSelectTaskForLog={setWipLogTask}
+              onSelectTaskForTesting={setTestingGateTask}
             />
           ))}
         </div>
+
+        <DragOverlay>
+          {activeTask ? (
+            <div className="kanban-card dragging-clone" style={{ opacity: 0.8, transform: 'scale(1.02)' }}>
+              <div className="card-drag-handle">
+                <h4>{activeTask.name}</h4>
+                <div className="drag-indicator">⋮⋮</div>
+              </div>
+              <div className="card-body-content">
+                <p>{activeTask.description}</p>
+              </div>
+            </div>
+          ) : null}
+        </DragOverlay>
       </DndContext>
 
-      {/* Task Initialization Form Modal */}
       <CreateTaskModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSubmit={createTask} />
 
-      {/* SPRINT 4 ISSUE 1: WORK IN PROGRESS LOGGING SUB-MODAL */}
       {wipLogTask && (
         <WipTaskModal 
           task={wipLogTask} 
@@ -246,31 +282,22 @@ export default function Board({ setIsLoggedIn }: BoardProps) {
         />
       )}
 
-      {/* SPRINT 4 ISSUE 2: GATED TESTING CASE VERIFICATION MODAL */}
       {testingGateTask && (
         <TestingTaskModal 
           task={testingGateTask}
           onClose={() => setTestingGateTask(null)}
-          onUpdate={async () => {
-            try {
-              await fetch(`${API_BASE_URL}/api/tasks/${testingGateTask.id}`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ status: "Testing" }),
-              });
-              fetchTasks();
-            } catch (err) {
-              console.error(err);
-            }
+          onUpdate={() => {
+            fetchTasks();
             setTestingGateTask(null);
           }}
         />
       )}
 
-      {/* SCHEDULE INTERCEPTIVE MODAL */}
+      {/* SCHEDULE MODAL */}
       {schedulingTask && (
-        <div className="modal-overlay">
-          <div className="modal-content">
+        /* ✅ ADDED POINTER INTERCEPTION: Prevents DnD engine layout hooks from blocking inputs */
+        <div className="modal-overlay" onPointerDown={e => e.stopPropagation()}>
+          <div className="modal-content" onPointerDown={e => e.stopPropagation()}>
             <h3>Schedule Task: {schedulingTask.name}</h3>
             <form onSubmit={handleScheduleSubmit}>
               <div className="form-group">
@@ -294,10 +321,11 @@ export default function Board({ setIsLoggedIn }: BoardProps) {
         </div>
       )}
 
-      {/* DEPLOYMENT INTERCEPTIVE MODAL */}
+      {/* DEPLOYMENT MODAL */}
       {deployingTask && (
-        <div className="modal-overlay">
-          <div className="modal-content">
+        /* ✅ ADDED POINTER INTERCEPTION: Guarantees text fields and selectors remain interactive */
+        <div className="modal-overlay" onPointerDown={e => e.stopPropagation()}>
+          <div className="modal-content" onPointerDown={e => e.stopPropagation()}>
             <h3>Deploy Task: {deployingTask.name}</h3>
             <form onSubmit={handleDeploySubmit}>
               <div className="form-group">
@@ -324,40 +352,47 @@ export default function Board({ setIsLoggedIn }: BoardProps) {
   );
 }
 
-function DroppableColumn({ title, tasks, onToggleWorkStatus, onMoveToTesting, onSelectTaskForLog }: any) {
+function DroppableColumn({ title, tasks, onToggleWorkStatus, onMoveToTesting, onSelectTaskForLog, onSelectTaskForTesting }: any) {
   const { setNodeRef, isOver } = useDroppable({ id: title });
+  
+  // ✅ DRAG-DROP FIX: Combines task IDs with the column container ID so @dnd-kit recognizes
+  // the entire column as a valid drop zone, enabling drops to empty columns and container zones
+  const columnItems = [...tasks.map((t: Task) => t.id), title];
+
   return (
     <div ref={setNodeRef} className="kanban-column" style={{ borderColor: isOver ? "#2563eb" : "transparent" }}>
       <h3>{title}</h3>
-      <SortableContext items={tasks.map((t: Task) => t.id)} strategy={verticalListSortingStrategy}>
-        {tasks.map((t: Task) => (
-          <DraggableCard 
-            key={t.id} 
-            task={t} 
-            onToggleWorkStatus={onToggleWorkStatus} 
-            onMoveToTesting={onMoveToTesting} 
-            onSelectTaskForLog={onSelectTaskForLog} 
-          />
-        ))}
+      <SortableContext items={columnItems} strategy={verticalListSortingStrategy}>
+        <div className="column-cards-container" style={{ minHeight: "200px", width: "100%" }}>
+          {tasks.map((t: Task) => (
+            <DraggableCard 
+              key={t.id} 
+              task={t} 
+              onToggleWorkStatus={onToggleWorkStatus} 
+              onMoveToTesting={onMoveToTesting} 
+              onSelectTaskForLog={onSelectTaskForLog} 
+              onSelectTaskForTesting={onSelectTaskForTesting}
+            />
+          ))}
+        </div>
       </SortableContext>
     </div>
   );
 }
 
-function DraggableCard({ task, onToggleWorkStatus, onMoveToTesting, onSelectTaskForLog }: any) {
-  // Replaced useDraggable with useSortable to support vertical list context and swap animations
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: task.id });
+function DraggableCard({ task, onToggleWorkStatus, onMoveToTesting, onSelectTaskForLog, onSelectTaskForTesting }: any) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id });
+  
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
+    opacity: isDragging ? 0.3 : 1, 
   };
 
   return (
     <div 
       ref={setNodeRef} 
       style={style} 
-      {...listeners} 
-      {...attributes} 
       className="kanban-card"
       onDoubleClick={() => {
         if (task.status === "Work In Progress") {
@@ -365,8 +400,14 @@ function DraggableCard({ task, onToggleWorkStatus, onMoveToTesting, onSelectTask
         }
       }}
     >
-      <h4>{task.name}</h4>
-      <p>{task.description}</p>
+      <div className="card-drag-handle" {...listeners} {...attributes}>
+        <h4>{task.name}</h4>
+        <div className="drag-indicator">⋮⋮</div>
+      </div>
+
+      <div className="card-body-content">
+        <p>{task.description}</p>
+      </div>
 
       {task.status === "Work In Progress" && (
         <div className="card-controls" onPointerDown={e => e.stopPropagation()}>
@@ -380,6 +421,14 @@ function DraggableCard({ task, onToggleWorkStatus, onMoveToTesting, onSelectTask
           </label>
           <button disabled={task.workStatus !== "Completed"} onClick={() => onMoveToTesting(task.id)}>
             Send to Testing
+          </button>
+        </div>
+      )}
+
+      {task.status === "Testing" && (
+        <div className="card-controls" onPointerDown={e => e.stopPropagation()}>
+          <button className="btn-primary" onClick={() => onSelectTaskForTesting(task)}>
+            Log Test Results
           </button>
         </div>
       )}

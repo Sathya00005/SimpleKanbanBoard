@@ -24,6 +24,10 @@ model Task {
   status          String        @default("Backlog")
   userId          String        @db.ObjectId
   workStatus      String        @default("Pending")
+  
+  // 🔽 ADD THIS LINE RIGHT HERE TO REGISTER THE ARRAY FIELD 🔽
+  testCases       String[]      
+  
   startDate       DateTime?
   endDate         DateTime?
   effortRequired  Int?
@@ -31,10 +35,7 @@ model Task {
   deploymentType  String?
   createdAt       DateTime      @default(now())
   
-  // 🔽 FIXED: This maps the explicit object relationship back to the User model 🔽
   user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  // Gated Sprint 4 sub-tables
   timeLogs        TimeLog[]
   history         TaskHistory[]
 }

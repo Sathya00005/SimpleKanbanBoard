@@ -91,44 +91,67 @@
   font-size: 18px;
 }
 
-/* Draggable Kanban cards */
 .kanban-card {
-  background: #f9fafb;
-  border-radius: 14px;
-  padding: 16px;
-  margin-bottom: 12px;
-  border-left: 4px solid #2563eb;
-  list-style: none;
+  overflow: visible;
   cursor: grab;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
-}
-
-.kanban-card:active {
-  cursor: grabbing;
+  position: relative;
 }
 
 .kanban-card:hover {
-  transform: translateY(-2px);
   box-shadow: 0 12px 24px rgba(0,0,0,.08);
   background: #ffffff;
+  transform: none;
 }
 
-.kanban-card h4 {
-  margin: 0 0 8px 0;
+/* 🔽 NEW: Drag Handle Layout Structure 🔽 */
+.card-drag-handle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px 8px 14px;
+  background-color: rgba(243, 244, 246, 0.5); /* Soft gray anchor stripe */
+  cursor: grab;
+  transition: background-color 0.2s ease;
+}
+
+.card-drag-handle:active {
+  cursor: grabbing;
+}
+
+.kanban-card:hover .card-drag-handle {
+  background-color: rgba(243, 244, 246, 0.8);
+}
+
+.card-drag-handle h4 {
+  margin: 0;
   color: #111827;
   font-size: 16px;
+  font-weight: 600;
 }
 
-.kanban-card p {
+.drag-indicator {
+  color: #9ca3af;
+  font-size: 18px;
+  font-weight: bold;
+  user-select: none;
+}
+
+/* 🔽 NEW: Body content structural padding wrapper 🔽 */
+.card-body-content {
+  padding: 0 14px 12px 14px;
+  margin-top: 8px;
+}
+
+.card-body-content p {
   color: #6b7280;
   font-size: 14px;
-  margin: 0 0 12px 0;
+  margin: 0;
   line-height: 1.4;
 }
 
-/* Inner card action blocks */
+/* Inner card action blocks - INTEGRATED WITH CARD CONTENT */
 .card-controls {
-  margin-top: 14px;
+  margin: 12px 14px 14px 14px;
   padding-top: 12px;
   border-top: 1px dashed #e5e7eb;
   display: flex;
