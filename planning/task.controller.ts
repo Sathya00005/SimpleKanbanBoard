@@ -1,4 +1,4 @@
-import type { Request, Response } from "express";
+import { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
@@ -36,7 +36,6 @@ export const createTask = async (req: Request, res: Response) => {
         description: description || "",
         status: "Backlog",
         userId,
-        testCases: ["Unit Integration Test", "Regression Test Run"]
       }
     });
 
@@ -49,6 +48,8 @@ export const createTask = async (req: Request, res: Response) => {
   }
 };
 
+// 2. Fetch Tasks filtered by userId + Complex Priority Sorting
+// Satisfies Task 6.2: Oldest Failed -> Newest Failed -> Standard Tasks
 // 2. Fetch Tasks filtered by userId + Complex Priority Sorting
 // Satisfies Task 6.2: Oldest Failed -> Newest Failed -> Standard Tasks
 export const getTasks = async (req: Request, res: Response) => {
@@ -70,23 +71,28 @@ export const getTasks = async (req: Request, res: Response) => {
       }
     });
 
+    // ✅ FIX: Explicitly type 't' parameter to any or your specific schema type for matching
     const backlogTasks = tasks.filter((t: any) => t.status === "Backlog");
     const otherTasks = tasks.filter((t: any) => t.status !== "Backlog");
 
     // Process Backlog Sorting: Oldest Failed -> Newest Failed -> Standard Tasks
+    // ✅ FIX: Explicitly type 'a', 'b', and internal 'h' loop variables
     backlogTasks.sort((a: any, b: any) => {
       const aFailed = a.history.some((h: any) => h.eventType === "TEST_FAILED");
       const bFailed = b.history.some((h: any) => h.eventType === "TEST_FAILED");
 
       if (aFailed && bFailed) {
+        // Both failed: Oldest failure first (Ascending order of creation)
         return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
       }
-      if (aFailed) return -1; 
-      if (bFailed) return 1;  
+      if (aFailed) return -1; // Move failed task a up
+      if (bFailed) return 1;  // Move failed task b up
 
+      // Neither failed: Standard creation sorting (Newest or default)
       return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
     });
 
+    // Recombine columns with chronological array sorting preserved
     const combinedTasks = [...backlogTasks, ...otherTasks];
 
     return res.status(200).json(combinedTasks);
@@ -95,8 +101,7 @@ export const getTasks = async (req: Request, res: Response) => {
     return res.status(500).json({ error: "Internal server error" });
   }
 };
-
-// 3. Update Task Status or Generic Fields Whitelist
+// 3. Update Task Status or Generic Fields
 // Satisfies Task 6.1 (Generic Edit) & fixes the 500 error block safely!
 export const updateTask = async (req: Request, res: Response) => {
   try {
@@ -106,39 +111,28 @@ export const updateTask = async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Task ID is required" });
     }
 
+    // Look up the old state before making modifications
     const existingTask = await prisma.task.findUnique({
-      where: { id: taskId }
+      where: { id: taskId },
+      include: { history: true }
     });
 
     if (!existingTask) {
       return res.status(404).json({ error: "Task not found" });
     }
 
-    // ✅ WHITELIST SYSTEM: Explicitly filter out loose non-schema items like priority
-    const updateData: any = {};
-    
-    if (req.body.name !== undefined) updateData.name = req.body.name;
-    if (req.body.description !== undefined) updateData.description = req.body.description;
-    if (req.body.status !== undefined) updateData.status = req.body.status;
-    if (req.body.workStatus !== undefined) updateData.workStatus = req.body.workStatus;
-    if (req.body.deploymentType !== undefined) updateData.deploymentType = req.body.deploymentType;
-    
-    // ✅ Whitelist allowance for custom test cases array maps
-    if (req.body.testCases !== undefined) updateData.testCases = req.body.testCases;
+    // Clone the raw request body payload
+    const dataToUpdate = { ...req.body };
 
-    if (req.body.startDate) updateData.startDate = new Date(req.body.startDate);
-    if (req.body.endDate) updateData.endDate = new Date(req.body.endDate);
-    if (req.body.deployedTime) updateData.deployedTime = new Date(req.body.deployedTime);
-    
-    if (req.body.effortRequired !== undefined) {
-      updateData.effortRequired = Number(req.body.effortRequired);
-    }
+    // ✅ FIX: Extract fields that do not exist on the database model to prevent Prisma crashes!
+    const testRunResult = dataToUpdate.testRunResult;
+    delete dataToUpdate.testRunResult;
+    delete dataToUpdate.priority; // Safely drops frontend priority text until schema is updated
 
-    const testRunResult = req.body.testRunResult;
-
+    // Execute the database modifications
     const updatedTask = await prisma.task.update({
       where: { id: taskId },
-      data: updateData,
+      data: dataToUpdate,
       include: {
         timeLogs: true,
         history: {
@@ -147,16 +141,17 @@ export const updateTask = async (req: Request, res: Response) => {
       },
     });
 
-    if (updateData.status && updateData.status !== existingTask.status) {
+    // Task 5.3: Automated history trace logging
+    if (dataToUpdate.status && dataToUpdate.status !== existingTask.status) {
       await createHistoryEntry(
         taskId, 
         "STATUS_CHANGE", 
-        `Moved task from column "${existingTask.status}" to "${updateData.status}"`
+        `Moved task from column "${existingTask.status}" to "${dataToUpdate.status}"`
       );
     }
 
     if (testRunResult) {
-      const type = testRunResult === "PASSED" ? "TEST_PASSED" : "TEST_FAILED";
+      const type = testRunResult === "PASSED" ? "TEST_PASSED" : testRunResult === "FAILED" ? "TEST_FAILED" : "TEST_RUN";
       const detailMsg = testRunResult === "FAILED" 
         ? "Automated regression suite failed testing parameters. Shifting card back to Backlog lane." 
         : "All testing hooks passed execution suite criteria validation successfully.";
@@ -191,12 +186,14 @@ export const addTimeLog = async (req: Request, res: Response) => {
       }
     });
 
+    // Task 5.3 History log update
     await createHistoryEntry(
       taskId, 
       "WORK_LOG_ADDED", 
       `Logged ${hoursSpent} hours of developer effort: "${description || 'No comments left'}"`
     );
 
+    // Fetch parent task object so layout states maintain complete arrays
     const completedTaskContext = await prisma.task.findUnique({
       where: { id: taskId },
       include: {

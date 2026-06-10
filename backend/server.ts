@@ -2,7 +2,9 @@ import express from "express";
 import type { Request, Response } from "express";
 import cors from "cors";
 import { PrismaClient } from "@prisma/client";
-import type { User, Task } from "@prisma/client";
+import type { User } from "@prisma/client";
+// ✅ FIX: Remove the '.ts' extension from the end of the import path string
+import { createTask, getTasks, updateTask, addTimeLog } from "./task.controller";
 
 const app = express();
 const prisma = new PrismaClient();
@@ -111,211 +113,14 @@ app.get("/api/users/:userId", async (req: Request<{ userId: string }>, res: Resp
   }
 });
 
-/* ---------------- CREATE TASK ---------------- */
+/* ---------------- TASKS ROUTING MAPPINGS ---------------- */
+// ✅ FIXED: Routes now funnel straight into task.controller.ts methods 
+// This links relational arrays (timeLogs, history) and custom priority sorting rules.
 
-interface CreateTaskBody {
-  name?: string;
-  description?: string;
-  userId?: string;
-  testCases?: string[];
-}
-
-app.post("/api/tasks", async (req: Request<{}, {}, CreateTaskBody>, res: Response): Promise<any> => {
-  try {
-    const { name, description, userId, testCases } = req.body;
-
-    if (!name || !userId) {
-      return res.status(400).json({ error: "Task name and User ID are required" });
-    }
-
-    // ✅ FIXED: Integrated the loose code chunk cleanly inside the correct task creation endpoint
-    const task: Task = await prisma.task.create({
-      data: {
-        name,
-        description: description || "",
-        status: "Backlog",
-        userId,
-        // Checks array data types or applies standard baseline system scenarios
-        testCases: testCases || ["Unit Integration Test", "Regression Test Run"]
-      },
-    });
-
-    return res.status(201).json(task);
-  } catch (error) {
-    console.error("Create Task Error:", error);
-    return res.status(500).json({ error: "Failed to create task" });
-  }
-});
-
-/* ---------------- GET USER TASKS ---------------- */
-
-app.get("/api/tasks/:userId", async (req: Request<{ userId: string }>, res: Response): Promise<any> => {
-  try {
-    const { userId } = req.params;
-    const tasks: Task[] = await prisma.task.findMany({
-      where: { userId },
-      orderBy: { createdAt: "desc" },
-    });
-
-    return res.json(tasks);
-  } catch (error) {
-    console.error("Get Tasks Error:", error);
-    return res.status(500).json({ error: "Failed to fetch tasks" });
-  }
-});
-
-/* ---------------- UPDATE TASK STATUS & METRICS ---------------- */
-
-interface UpdateTaskBody {
-  status?: string;
-  startDate?: string;
-  endDate?: string;
-  effortRequired?: string | number;
-  workStatus?: string;
-  deployedTime?: string;
-  deploymentType?: string;
-}
-
-interface PrismaUpdateData {
-  status?: string;
-  workStatus?: string;
-  deploymentType?: string;
-  startDate?: Date;
-  endDate?: Date;
-  deployedTime?: Date;
-  effortRequired?: number;
-}
-
-app.put("/api/tasks/:taskId", async (req: Request<{ taskId: string }, {}, UpdateTaskBody>, res: Response): Promise<any> => {
-  try {
-    const { taskId } = req.params;
-    const {
-      status,
-      startDate,
-      endDate,
-      effortRequired,
-      workStatus,
-      deployedTime,
-      deploymentType,
-    } = req.body;
-
-    if (taskId.length === 24 && !/^[a-fA-F0-9]{24}$/.test(taskId)) {
-      return res.status(400).json({ error: "Invalid task ID format" });
-    }
-
-    const existingTask = await prisma.task.findUnique({ where: { id: taskId } });
-    if (!existingTask) {
-      return res.status(404).json({ error: "Task not found" });
-    }
-
-    const updateData: PrismaUpdateData = {};
-
-    if (status !== undefined) updateData.status = status;
-    if (workStatus !== undefined) updateData.workStatus = workStatus;
-    if (deploymentType !== undefined) updateData.deploymentType = deploymentType;
-    
-    if (startDate) updateData.startDate = new Date(startDate);
-    if (endDate) updateData.endDate = new Date(endDate);
-    if (deployedTime) updateData.deployedTime = new Date(deployedTime);
-    
-    if (effortRequired !== undefined) {
-      updateData.effortRequired = Number(effortRequired);
-    }
-
-    const updatedTask: Task = await prisma.task.update({
-      where: { id: taskId },
-      data: updateData,
-    });
-
-    return res.status(200).json({ success: true, task: updatedTask });
-  } catch (error) {
-    console.error("Update Task Error:", error);
-    return res.status(500).json({ error: "Failed to update task" });
-  }
-});
-
-/* ---------------- SPRINT 4: WIP TIME LOGGING ---------------- */
-interface TimeLogBody {
-  date?: string;
-  hours?: string | number;
-  description?: string;
-}
-
-app.post("/api/tasks/:taskId/time-logs", async (req: Request<{ taskId: string }, {}, TimeLogBody>, res: Response): Promise<any> => {
-  try {
-    const { taskId } = req.params;
-    const { date, hours, description } = req.body;
-
-    if (!date || hours === undefined || !description) {
-      return res.status(400).json({ error: "All time-log fields are required" });
-    }
-
-    const parseHours = parseFloat(hours.toString());
-    if (parseHours < 0) {
-      return res.status(400).json({ error: "Hours cannot be negative" });
-    }
-
-    await prisma.$transaction(async (tx) => {
-      await tx.timeLog.create({
-        data: {
-          taskId,
-          logDate: new Date(date),
-          hoursSpent: parseHours,
-          description,
-        },
-      });
-
-      await tx.taskHistory.create({
-        data: {
-          taskId,
-          eventType: "TIME_LOGGED",
-          details: `Logged ${parseHours} hours on ${date}. Notes: ${description}`,
-        },
-      });
-    });
-
-    return res.status(201).json({ success: true, message: "Time logged successfully" });
-  } catch (error) {
-    console.error("Time Log Error:", error);
-    return res.status(500).json({ error: "Server error while saving time log" });
-  }
-});
-
-/* ---------------- SPRINT 4: WIP STATUS UPDATE ---------------- */
-interface StatusUpdateBody {
-  status?: string;
-}
-
-app.patch("/api/tasks/:taskId/status", async (req: Request<{ taskId: string }, {}, StatusUpdateBody>, res: Response): Promise<any> => {
-  try {
-    const { taskId } = req.params;
-    const { status } = req.body;
-
-    if (!status) {
-      return res.status(400).json({ error: "Status field is required" });
-    }
-
-    await prisma.$transaction(async (tx) => {
-      await tx.task.update({
-        where: { id: taskId },
-        data: { workStatus: status },
-      });
-
-      await tx.taskHistory.create({
-        data: {
-          taskId,
-          eventType: "STATUS_UPDATED",
-          details: `Work status changed to ${status}`,
-        },
-      });
-    });
-
-    return res.status(200).json({ success: true, message: "Status updated successfully" });
-  } catch (error) {
-    console.error("Status Patch Error:", error);
-    return res.status(500).json({ error: "Server error while modifying work status" });
-  }
-});
+app.post("/api/tasks", createTask);
+app.get("/api/tasks/:userId", getTasks);
+app.put("/api/tasks/:id", updateTask);
+app.post("/api/tasks/:id/time-logs", addTimeLog);
 
 /* ---------------- SPRINT 4: GATED TEST VERDICTS REGISTRATION & REVERSE FLOW ---------------- */
 interface TestRunPayload {
@@ -370,12 +175,11 @@ app.post("/api/tasks/:taskId/test-results", async (req: Request<{ taskId: string
       }
 
       if (!allPassed) {
-        // 🚨 AUTOMATIC REVERSE FLOW INTERCEPTOR LOGIC
         await tx.task.update({
           where: { id: taskId },
           data: { 
-            status: "Backlog",     // Kick card back to column 0
-            workStatus: "Pending"  // Reset checkbox control flag state
+            status: "Backlog",     
+            workStatus: "Pending"  
           },
         });
 
@@ -387,7 +191,6 @@ app.post("/api/tasks/:taskId/test-results", async (req: Request<{ taskId: string
           },
         });
       } else {
-        // ✅ FIXED: Update column state to "Testing" dynamically when validation runs pass
         await tx.task.update({
           where: { id: taskId },
           data: { 

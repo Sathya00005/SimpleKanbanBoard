@@ -23,10 +23,12 @@ export default function WipTaskModal({ task, onClose, onUpdate }: WipTaskModalPr
     if (parsedHours < 0) return alert('Hours cannot be negative');
     
     try {
+      // ✅ FIX: Mapped payload parameters explicitly to match what the backend addTimeLog controller expects
       await axios.post(`${API_BASE_URL}/api/tasks/${task.id}/time-logs`, {
-        date,
-        hours: parsedHours,
-        description
+        taskId: task.id,
+        hoursSpent: parsedHours,
+        description: description,
+        logDate: date
       });
       alert('Time logged successfully!');
       setDate('');
@@ -44,7 +46,7 @@ export default function WipTaskModal({ task, onClose, onUpdate }: WipTaskModalPr
     try {
       await axios.patch(`${API_BASE_URL}/api/tasks/${task.id}/status`, { status: newStatus });
       setStatus(newStatus);
-      onUpdate(); // Triggers parent task re-fetch to update board columns seamlessly
+      onUpdate(); 
     } catch (error) {
       console.error('Failed to update status', error);
       alert('Error updating status.');

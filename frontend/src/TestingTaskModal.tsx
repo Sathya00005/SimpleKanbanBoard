@@ -21,9 +21,13 @@ export default function TestingTaskModal({
   onClose,
   onUpdate
 }: TestingTaskModalProps) {
-  const initialResults: TestResultState[] = (
-    task.testCases || ["Unit Integration Test", "Regression Test Run"]
-  ).map((tc: string) => ({
+  
+  // ✅ FIX: Explicitly check for an empty array length so your fallback defaults are applied properly!
+  const targetTestCases = task.testCases && task.testCases.length > 0
+    ? task.testCases
+    : ["Unit Integration Test", "Regression Test Run"];
+
+  const initialResults: TestResultState[] = targetTestCases.map((tc: string) => ({
     name: tc,
     startTime: '',
     endTime: '',
@@ -60,17 +64,31 @@ export default function TestingTaskModal({
       if (!res.ok) throw new Error('Failed to save test results');
 
       if (hasFailedTests) {
+        // ✅ Passing testRunResult: 'FAILED' explicitly forces the backend 
+        // updateTask route to run createHistoryEntry() and record the crash timeline event.
         await fetch(`${API_BASE_URL}/api/tasks/${task.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: 'Backlog' })
+          body: JSON.stringify({ 
+            status: 'Backlog',
+            testRunResult: 'FAILED'
+          })
         });
 
         alert(
           "Test failure detected. Task has been automatically moved back to the Backlog."
         );
       } else {
-        const data = await res.json();
+        // ✅ Logs test pass event on the timeline if status transitions forward
+        await fetch(`${API_BASE_URL}/api/tasks/${task.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            testRunResult: 'PASSED'
+          })
+        });
+
+        const data = await res.json().catch(() => ({}));
         alert(
           data.message ||
             "All tests passed! You can now move the task to Deployed."
@@ -123,7 +141,7 @@ export default function TestingTaskModal({
                   }}
                 >
                   Test Group: {res.name}
-                </strong>
+                </strong> 
 
                 <div style={{ display: 'flex', gap: '12px' }}>
                   <div style={{ flex: 1 }}>
