@@ -3,8 +3,8 @@ import WipTaskModal from "./WipTaskModal";
 import TestingTaskModal from "./TestingTaskModal";
 import CreateTaskModal from "./CreateTaskModal";
 import "./Board.css";
-import { DndContext, useDroppable, useDraggable, closestCorners, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
-import type { DragEndEvent } from "@dnd-kit/core";
+import { DndContext, useDroppable, closestCorners, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";import type { DragEndEvent } from "@dnd-kit/core";
+import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { Task } from "./types";
 
@@ -147,13 +147,31 @@ export default function Board({ setIsLoggedIn }: BoardProps) {
     if (!over) return;
 
     const taskId = active.id as string;
-    const newStatus = over.id as string;
+    const overId = over.id as string;
+
     const task = tasks.find(t => t.id === taskId);
+    const overTask = tasks.find(t => t.id === overId);
     if (!task) return;
 
+    // Determine if we dropped over a column directly or over another task card
+    const newStatus = overTask ? (overTask.status || "Backlog") : overId;
+    
     const currentIdx = COLUMNS.indexOf(task.status || "Backlog");
     const newIdx = COLUMNS.indexOf(newStatus);
 
+    // Handle Intra-Column Sorting (Reordering within the same column)
+    if (task.status === newStatus) {
+      if (taskId !== overId) {
+        setTasks((prevTasks) => {
+          const oldIndex = prevTasks.findIndex((t) => t.id === taskId);
+          const newIndex = prevTasks.findIndex((t) => t.id === overId);
+          return arrayMove(prevTasks, oldIndex, newIndex);
+        });
+      }
+      return;
+    }
+
+    // Handle Inter-Column Transitions
     if (newIdx !== currentIdx + 1) {
       return alert("You can only move cards step-by-step.");
     }
@@ -311,22 +329,28 @@ function DroppableColumn({ title, tasks, onToggleWorkStatus, onMoveToTesting, on
   return (
     <div ref={setNodeRef} className="kanban-column" style={{ borderColor: isOver ? "#2563eb" : "transparent" }}>
       <h3>{title}</h3>
-      {tasks.map((t: Task) => (
-        <DraggableCard 
-          key={t.id} 
-          task={t} 
-          onToggleWorkStatus={onToggleWorkStatus} 
-          onMoveToTesting={onMoveToTesting} 
-          onSelectTaskForLog={onSelectTaskForLog} 
-        />
-      ))}
+      <SortableContext items={tasks.map((t: Task) => t.id)} strategy={verticalListSortingStrategy}>
+        {tasks.map((t: Task) => (
+          <DraggableCard 
+            key={t.id} 
+            task={t} 
+            onToggleWorkStatus={onToggleWorkStatus} 
+            onMoveToTesting={onMoveToTesting} 
+            onSelectTaskForLog={onSelectTaskForLog} 
+          />
+        ))}
+      </SortableContext>
     </div>
   );
 }
 
 function DraggableCard({ task, onToggleWorkStatus, onMoveToTesting, onSelectTaskForLog }: any) {
-  const { attributes, listeners, setNodeRef, transform } = useDraggable({ id: task.id });
-  const style = transform ? { transform: CSS.Translate.toString(transform) } : undefined;
+  // Replaced useDraggable with useSortable to support vertical list context and swap animations
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: task.id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
 
   return (
     <div 
