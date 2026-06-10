@@ -18,25 +18,42 @@ model User {
 }
 
 model Task {
-  id              String   @id @default(auto()) @map("_id") @db.ObjectId
-
+  id              String        @id @default(auto()) @map("_id") @db.ObjectId
   name            String
-  description     String?
-
-  status          String
-
+  description     String
+  status          String        @default("Backlog")
+  userId          String        @db.ObjectId
+  workStatus      String        @default("Pending")
   startDate       DateTime?
   endDate         DateTime?
-
   effortRequired  Int?
-
-  workStatus      String?
-
   deployedTime    DateTime?
   deploymentType  String?
+  createdAt       DateTime      @default(now())
+  
+  // 🔽 FIXED: This maps the explicit object relationship back to the User model 🔽
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  createdAt       DateTime @default(now())
+  // Gated Sprint 4 sub-tables
+  timeLogs        TimeLog[]
+  history         TaskHistory[]
+}
 
-  userId          String @db.ObjectId
-  user            User   @relation(fields: [userId], references: [id])
+model TimeLog {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId 
+  taskId      String   @db.ObjectId
+  logDate     DateTime
+  hoursSpent  Float
+  description String
+  createdAt   DateTime @default(now())
+  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+}
+
+model TaskHistory {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId 
+  taskId    String   @db.ObjectId
+  eventType String   
+  details   String
+  createdAt DateTime @default(now())
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
 }

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import WipTaskModal from "./WipTaskModal"; 
 import "./Board.css";
 import CreateTaskModal from "./CreateTaskModal";
 import { DndContext, useDroppable, useDraggable, closestCorners, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
@@ -16,6 +17,9 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3001
 export default function Board({ setIsLoggedIn }: BoardProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  /* ✅ FIXED: State hook now correctly moved inside the component block */
+  const [wipLogTask, setWipLogTask] = useState<Task | null>(null);
 
   /* Gated Modal States */
   const [schedulingTask, setSchedulingTask] = useState<Task | null>(null);
@@ -99,8 +103,8 @@ export default function Board({ setIsLoggedIn }: BoardProps) {
       });
       if (!res.ok) throw new Error("Deployment failed");
 
-      // Optimistically move layout card locally 
       setTasks(prev => prev.map(t => t.id === deployingTask.id ? { ...t, status: "Deployed" } : t));
+      deployingTask;
       setDeployingTask(null);
       setDeployFormData({ deployedTime: "", deploymentType: "feature_update" });
       fetchTasks();
@@ -206,12 +210,25 @@ export default function Board({ setIsLoggedIn }: BoardProps) {
               tasks={tasks.filter(t => (t.status || "Backlog") === col)}
               onToggleWorkStatus={toggleWorkStatus}
               onMoveToTesting={moveToTesting}
+              onSelectTaskForLog={setWipLogTask} /* ✅ Pass setter down to columns */
             />
           ))}
         </div>
       </DndContext>
 
       <CreateTaskModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSubmit={createTask} />
+
+      {/* ✅ WORK IN PROGRESS TRACKING PROGRESS MODAL */}
+      {wipLogTask && (
+        <WipTaskModal 
+          task={wipLogTask} 
+          onClose={() => setWipLogTask(null)} 
+          onUpdate={() => { 
+            fetchTasks(); 
+            setWipLogTask(null); 
+          }} 
+        />
+      )}
 
       {/* SCHEDULE INTERCEPTIVE MODAL */}
       {schedulingTask && (
@@ -270,24 +287,42 @@ export default function Board({ setIsLoggedIn }: BoardProps) {
   );
 }
 
-function DroppableColumn({ title, tasks, onToggleWorkStatus, onMoveToTesting }: any) {
+function DroppableColumn({ title, tasks, onToggleWorkStatus, onMoveToTesting, onSelectTaskForLog }: any) {
   const { setNodeRef, isOver } = useDroppable({ id: title });
   return (
     <div ref={setNodeRef} className="kanban-column" style={{ borderColor: isOver ? "#2563eb" : "transparent" }}>
       <h3>{title}</h3>
       {tasks.map((t: Task) => (
-        <DraggableCard key={t.id} task={t} onToggleWorkStatus={onToggleWorkStatus} onMoveToTesting={onMoveToTesting} />
+        <DraggableCard 
+          key={t.id} 
+          task={t} 
+          onToggleWorkStatus={onToggleWorkStatus} 
+          onMoveToTesting={onMoveToTesting} 
+          onSelectTaskForLog={onSelectTaskForLog} /* ✅ Pass down to cards */
+        />
       ))}
     </div>
   );
 }
 
-function DraggableCard({ task, onToggleWorkStatus, onMoveToTesting }: any) {
+function DraggableCard({ task, onToggleWorkStatus, onMoveToTesting, onSelectTaskForLog }: any) {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({ id: task.id });
   const style = transform ? { transform: CSS.Translate.toString(transform) } : undefined;
 
   return (
-    <div ref={setNodeRef} style={style} {...listeners} {...attributes} className="kanban-card">
+    <div 
+      ref={setNodeRef} 
+      style={style} 
+      {...listeners} 
+      {...attributes} 
+      className="kanban-card"
+      onDoubleClick={() => {
+        /* ✅ Double clicking a Work in Progress card fires the execution modal */
+        if (task.status === "Work In Progress") {
+          onSelectTaskForLog(task);
+        }
+      }}
+    >
       <h4>{task.name}</h4>
       <p>{task.description}</p>
 

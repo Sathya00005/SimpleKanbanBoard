@@ -230,6 +230,91 @@ app.put("/api/tasks/:taskId", async (req: Request<{ taskId: string }, {}, Update
     return res.status(500).json({ error: "Failed to update task" });
   }
 });
+/* ---------------- SPRINT 4: WIP TIME LOGGING ---------------- */
+interface TimeLogBody {
+  date?: string;
+  hours?: string | number;
+  description?: string;
+}
+
+app.post("/api/tasks/:taskId/time-logs", async (req: Request<{ taskId: string }, {}, TimeLogBody>, res: Response): Promise<any> => {
+  try {
+    const { taskId } = req.params;
+    const { date, hours, description } = req.body;
+
+    if (!date || hours === undefined || !description) {
+      return res.status(400).json({ error: "All time-log fields are required" });
+    }
+
+    const parseHours = parseFloat(hours.toString());
+    if (parseHours < 0) {
+      return res.status(400).json({ error: "Hours cannot be negative" });
+    }
+
+    // Using Prisma Interactive Transactions to match your schema architecture securely
+    await prisma.$transaction(async (tx) => {
+      // Create time log record linked to the task
+      await tx.timeLog.create({
+        data: {
+          taskId,
+          logDate: new Date(date),
+          hoursSpent: parseHours,
+          description,
+        },
+      });
+
+      // Write into audit trail history
+      await tx.taskHistory.create({
+        data: {
+          taskId,
+          eventType: "TIME_LOGGED",
+          details: `Logged ${parseHours} hours on ${date}. Notes: ${description}`,
+        },
+      });
+    });
+
+    return res.status(201).json({ success: true, message: "Time logged successfully" });
+  } catch (error) {
+    console.error("Time Log Error:", error);
+    return res.status(500).json({ error: "Server error while saving time log" });
+  }
+});
+
+/* ---------------- SPRINT 4: WIP STATUS UPDATE ---------------- */
+interface StatusUpdateBody {
+  status?: string;
+}
+
+app.patch("/api/tasks/:taskId/status", async (req: Request<{ taskId: string }, {}, StatusUpdateBody>, res: Response): Promise<any> => {
+  try {
+    const { taskId } = req.params;
+    const { status } = req.body;
+
+    if (!status) {
+      return res.status(400).json({ error: "Status field is required" });
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.task.update({
+        where: { id: taskId },
+        data: { workStatus: status },
+      });
+
+      await tx.taskHistory.create({
+        data: {
+          taskId,
+          eventType: "STATUS_UPDATED",
+          details: `Work status changed to ${status}`,
+        },
+      });
+    });
+
+    return res.status(200).json({ success: true, message: "Status updated successfully" });
+  } catch (error) {
+    console.error("Status Patch Error:", error);
+    return res.status(500).json({ error: "Server error while modifying work status" });
+  }
+});
 
 /* ---------------- DELETE TASK ---------------- */
 
