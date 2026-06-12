@@ -14,4 +14,6 @@ export interface Task {
   
   // 🔽 ADD THIS LINE TO DEFINE THE ARRAY PASS-THROUGH 🔽
   testCases?: string[]; 
+  timeLogs?: Array<{ hoursSpent: number; description: string; logDate: string }>;
+  history?: Array<{ createdAt: string; eventType: string; details: string }>;
 }

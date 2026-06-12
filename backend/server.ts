@@ -6,9 +6,7 @@ import type { User, Task } from "@prisma/client";
 
 const app = express();
 const prisma = new PrismaClient();
-const PORT: number = 3001;
-
-/* ---------------- MIDDLEWARE ---------------- */
+const PORT = 3001;
 
 app.use(
   cors({
@@ -18,13 +16,25 @@ app.use(
 );
 app.use(express.json());
 
-/* ---------------- HEALTH ---------------- */
+const isValidObjectId = (value: string) => /^[a-fA-F0-9]{24}$/.test(value);
+
+async function createHistoryEntry(taskId: string, eventType: string, details: string) {
+  try {
+    await prisma.taskHistory.create({
+      data: {
+        taskId,
+        eventType,
+        details,
+      },
+    });
+  } catch (error) {
+    console.error("History entry failed:", error);
+  }
+}
 
 app.get("/api/health", (req: Request, res: Response) => {
   res.json({ status: "ok", message: "Backend running" });
 });
-
-/* ---------------- SIGNUP ---------------- */
 
 interface SignupBody {
   username?: string;
@@ -60,8 +70,6 @@ app.post("/api/auth/signup", async (req: Request<{}, {}, SignupBody>, res: Respo
   }
 });
 
-/* ---------------- LOGIN ---------------- */
-
 interface LoginBody {
   email?: string;
   password?: string;
@@ -93,13 +101,12 @@ app.post("/api/auth/login", async (req: Request<{}, {}, LoginBody>, res: Respons
   }
 });
 
-/* ---------------- GET USER ---------------- */
-
 app.get("/api/users/:userId", async (req: Request<{ userId: string }>, res: Response): Promise<any> => {
   try {
     const { userId } = req.params;
-    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!userId) return res.status(400).json({ error: "User ID is required" });
 
+    const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
@@ -110,8 +117,6 @@ app.get("/api/users/:userId", async (req: Request<{ userId: string }>, res: Resp
     return res.status(500).json({ error: "Internal server error" });
   }
 });
-
-/* ---------------- CREATE TASK ---------------- */
 
 interface CreateTaskBody {
   name?: string;
@@ -128,17 +133,17 @@ app.post("/api/tasks", async (req: Request<{}, {}, CreateTaskBody>, res: Respons
       return res.status(400).json({ error: "Task name and User ID are required" });
     }
 
-    // ✅ FIXED: Integrated the loose code chunk cleanly inside the correct task creation endpoint
     const task: Task = await prisma.task.create({
       data: {
         name,
         description: description || "",
         status: "Backlog",
         userId,
-        // Checks array data types or applies standard baseline system scenarios
-        testCases: testCases || ["Unit Integration Test", "Regression Test Run"]
+        testCases: testCases && testCases.length > 0 ? testCases : ["Unit Integration Test", "Regression Test Run"],
       },
     });
+
+    await createHistoryEntry(task.id, "STATUS_CHANGE", "Task created under status: Backlog");
 
     return res.status(201).json(task);
   } catch (error) {
@@ -147,14 +152,19 @@ app.post("/api/tasks", async (req: Request<{}, {}, CreateTaskBody>, res: Respons
   }
 });
 
-/* ---------------- GET USER TASKS ---------------- */
-
 app.get("/api/tasks/:userId", async (req: Request<{ userId: string }>, res: Response): Promise<any> => {
   try {
     const { userId } = req.params;
-    const tasks: Task[] = await prisma.task.findMany({
+    if (!userId) return res.status(400).json({ error: "User ID is required" });
+
+    const tasks = await prisma.task.findMany({
       where: { userId },
-      orderBy: { createdAt: "desc" },
+      include: {
+        timeLogs: true,
+        history: {
+          orderBy: { createdAt: "desc" },
+        },
+      },
     });
 
     return res.json(tasks);
@@ -164,9 +174,9 @@ app.get("/api/tasks/:userId", async (req: Request<{ userId: string }>, res: Resp
   }
 });
 
-/* ---------------- UPDATE TASK STATUS & METRICS ---------------- */
-
 interface UpdateTaskBody {
+  name?: string;
+  description?: string;
   status?: string;
   startDate?: string;
   endDate?: string;
@@ -174,9 +184,13 @@ interface UpdateTaskBody {
   workStatus?: string;
   deployedTime?: string;
   deploymentType?: string;
+  testCases?: string[];
+  testRunResult?: string;
 }
 
 interface PrismaUpdateData {
+  name?: string;
+  description?: string;
   status?: string;
   workStatus?: string;
   deploymentType?: string;
@@ -184,12 +198,15 @@ interface PrismaUpdateData {
   endDate?: Date;
   deployedTime?: Date;
   effortRequired?: number;
+  testCases?: string[];
 }
 
 app.put("/api/tasks/:taskId", async (req: Request<{ taskId: string }, {}, UpdateTaskBody>, res: Response): Promise<any> => {
   try {
     const { taskId } = req.params;
     const {
+      name,
+      description,
       status,
       startDate,
       endDate,
@@ -197,9 +214,11 @@ app.put("/api/tasks/:taskId", async (req: Request<{ taskId: string }, {}, Update
       workStatus,
       deployedTime,
       deploymentType,
+      testCases,
+      testRunResult,
     } = req.body;
 
-    if (taskId.length === 24 && !/^[a-fA-F0-9]{24}$/.test(taskId)) {
+    if (!taskId || !isValidObjectId(taskId)) {
       return res.status(400).json({ error: "Invalid task ID format" });
     }
 
@@ -209,23 +228,51 @@ app.put("/api/tasks/:taskId", async (req: Request<{ taskId: string }, {}, Update
     }
 
     const updateData: PrismaUpdateData = {};
-
+    if (name !== undefined) updateData.name = name;
+    if (description !== undefined) updateData.description = description;
     if (status !== undefined) updateData.status = status;
     if (workStatus !== undefined) updateData.workStatus = workStatus;
     if (deploymentType !== undefined) updateData.deploymentType = deploymentType;
-    
+    if (testCases !== undefined) updateData.testCases = testCases;
     if (startDate) updateData.startDate = new Date(startDate);
     if (endDate) updateData.endDate = new Date(endDate);
     if (deployedTime) updateData.deployedTime = new Date(deployedTime);
-    
-    if (effortRequired !== undefined) {
-      updateData.effortRequired = Number(effortRequired);
-    }
+    if (effortRequired !== undefined) updateData.effortRequired = Number(effortRequired);
 
-    const updatedTask: Task = await prisma.task.update({
+    const updatedTask = await prisma.task.update({
       where: { id: taskId },
       data: updateData,
+      include: {
+        timeLogs: true,
+        history: {
+          orderBy: { createdAt: "desc" },
+        },
+      },
     });
+
+    if (status !== undefined && status !== existingTask.status) {
+      await createHistoryEntry(taskId, "STATUS_CHANGE", `Moved task from column \"${existingTask.status}\" to \"${status}\"`);
+    }
+    if (name !== undefined && name !== existingTask.name) {
+      await createHistoryEntry(taskId, "TASK_EDITED", `Task name changed to: ${name}`);
+    }
+    if (description !== undefined && description !== existingTask.description) {
+      await createHistoryEntry(taskId, "TASK_EDITED", `Task description updated.`);
+    }
+    if (testCases !== undefined) {
+      const previousCases = Array.isArray(existingTask.testCases) ? existingTask.testCases.join(", ") : "none";
+      const nextCases = Array.isArray(testCases) ? testCases.join(", ") : "none";
+      if (previousCases !== nextCases) {
+        await createHistoryEntry(taskId, "TEST_CASES_UPDATED", `Test cases changed from [${previousCases}] to [${nextCases}]`);
+      }
+    }
+    if (testRunResult) {
+      const type = testRunResult === "PASSED" ? "TEST_PASSED" : "TEST_FAILED";
+      const detailMsg = testRunResult === "PASSED"
+        ? "Automated test results passed validation successfully."
+        : "Automated test results failed validation and the task was moved back to Backlog.";
+      await createHistoryEntry(taskId, type, detailMsg);
+    }
 
     return res.status(200).json({ success: true, task: updatedTask });
   } catch (error) {
@@ -234,24 +281,30 @@ app.put("/api/tasks/:taskId", async (req: Request<{ taskId: string }, {}, Update
   }
 });
 
-/* ---------------- SPRINT 4: WIP TIME LOGGING ---------------- */
 interface TimeLogBody {
   date?: string;
+  logDate?: string;
   hours?: string | number;
+  hoursSpent?: string | number;
   description?: string;
 }
 
+// ✅ FIXED: Robust tracking engine mappings
 app.post("/api/tasks/:taskId/time-logs", async (req: Request<{ taskId: string }, {}, TimeLogBody>, res: Response): Promise<any> => {
   try {
     const { taskId } = req.params;
-    const { date, hours, description } = req.body;
+    
+    // Support alternate key formats seamlessly
+    const rawDate = req.body.logDate || req.body.date;
+    const rawHours = req.body.hoursSpent !== undefined ? req.body.hoursSpent : req.body.hours;
+    const { description } = req.body;
 
-    if (!date || hours === undefined || !description) {
-      return res.status(400).json({ error: "All time-log fields are required" });
+    if (!rawDate || rawHours === undefined || !description) {
+      return res.status(400).json({ error: "All time-log fields are required (date, hours, description)" });
     }
 
-    const parseHours = parseFloat(hours.toString());
-    if (parseHours < 0) {
+    const parseHours = parseFloat(rawHours.toString());
+    if (isNaN(parseHours) || parseHours < 0) {
       return res.status(400).json({ error: "Hours cannot be negative" });
     }
 
@@ -259,17 +312,16 @@ app.post("/api/tasks/:taskId/time-logs", async (req: Request<{ taskId: string },
       await tx.timeLog.create({
         data: {
           taskId,
-          logDate: new Date(date),
+          logDate: new Date(rawDate),
           hoursSpent: parseHours,
           description,
         },
       });
-
       await tx.taskHistory.create({
         data: {
           taskId,
           eventType: "TIME_LOGGED",
-          details: `Logged ${parseHours} hours on ${date}. Notes: ${description}`,
+          details: `Logged ${parseHours} hours on ${rawDate}. Notes: ${description}`,
         },
       });
     });
@@ -281,7 +333,6 @@ app.post("/api/tasks/:taskId/time-logs", async (req: Request<{ taskId: string },
   }
 });
 
-/* ---------------- SPRINT 4: WIP STATUS UPDATE ---------------- */
 interface StatusUpdateBody {
   status?: string;
 }
@@ -300,7 +351,6 @@ app.patch("/api/tasks/:taskId/status", async (req: Request<{ taskId: string }, {
         where: { id: taskId },
         data: { workStatus: status },
       });
-
       await tx.taskHistory.create({
         data: {
           taskId,
@@ -317,7 +367,6 @@ app.patch("/api/tasks/:taskId/status", async (req: Request<{ taskId: string }, {
   }
 });
 
-/* ---------------- SPRINT 4: GATED TEST VERDICTS REGISTRATION & REVERSE FLOW ---------------- */
 interface TestRunPayload {
   name: string;
   startTime: string;
@@ -347,15 +396,15 @@ app.post("/api/tasks/:taskId/test-results", async (req: Request<{ taskId: string
 
     await prisma.$transaction(async (tx) => {
       for (const run of results) {
+        const hours = Math.abs(new Date(run.endTime).getTime() - new Date(run.startTime).getTime()) / 3600000;
         await tx.timeLog.create({
           data: {
             taskId,
             logDate: new Date(run.startTime),
-            hoursSpent: Math.abs(new Date(run.endTime).getTime() - new Date(run.startTime).getTime()) / 3600000,
+            hoursSpent: hours,
             description: `Test Case: [${run.name}] evaluated with verdict status: ${run.status}`,
           },
         });
-
         await tx.taskHistory.create({
           data: {
             taskId,
@@ -363,22 +412,19 @@ app.post("/api/tasks/:taskId/test-results", async (req: Request<{ taskId: string
             details: `Test Run [${run.name}] finished. Execution verdict state: ${run.status}`,
           },
         });
-
         if (run.status === "Failed") {
           allPassed = false;
         }
       }
 
       if (!allPassed) {
-        // 🚨 AUTOMATIC REVERSE FLOW INTERCEPTOR LOGIC
         await tx.task.update({
           where: { id: taskId },
-          data: { 
-            status: "Backlog",     // Kick card back to column 0
-            workStatus: "Pending"  // Reset checkbox control flag state
+          data: {
+            status: "Backlog",
+            workStatus: "Pending",
           },
         });
-
         await tx.taskHistory.create({
           data: {
             taskId,
@@ -387,14 +433,12 @@ app.post("/api/tasks/:taskId/test-results", async (req: Request<{ taskId: string
           },
         });
       } else {
-        // ✅ FIXED: Update column state to "Testing" dynamically when validation runs pass
         await tx.task.update({
           where: { id: taskId },
-          data: { 
-            status: "Testing"
+          data: {
+            status: "Testing",
           },
         });
-
         await tx.taskHistory.create({
           data: {
             taskId,
@@ -405,31 +449,22 @@ app.post("/api/tasks/:taskId/test-results", async (req: Request<{ taskId: string
       }
     });
 
-    if (!allPassed) {
-      return res.status(200).json({ 
-        success: true, 
-        message: "Tests failed! Task has been automatically moved back to the Backlog column." 
-      });
-    }
-
-    return res.status(200).json({ 
-      success: true, 
-      message: "All validation tests passed! Your task is verified and ready for deployment features." 
+    return res.status(200).json({
+      success: true,
+      message: allPassed
+        ? "All validation tests passed! Your task is verified and ready for deployment features."
+        : "Tests failed! Task has been automatically moved back to the Backlog column.",
     });
-
   } catch (error) {
     console.error("Test Results Processing Error:", error);
     return res.status(500).json({ error: "Internal server exception handling execution validation matrices." });
   }
 });
 
-/* ---------------- DELETE TASK ---------------- */
-
 app.delete("/api/tasks/:taskId", async (req: Request<{ taskId: string }>, res: Response): Promise<any> => {
   try {
     const { taskId } = req.params;
     await prisma.task.delete({ where: { id: taskId } });
-
     return res.json({ success: true, message: "Task deleted" });
   } catch (error) {
     console.error(error);

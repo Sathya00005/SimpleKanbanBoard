@@ -2,11 +2,12 @@ import { useEffect, useState } from "react";
 import WipTaskModal from "./WipTaskModal"; 
 import TestingTaskModal from "./TestingTaskModal";
 import CreateTaskModal from "./CreateTaskModal";
+import TaskDetailsModal from "./TaskDetailsModal";
+import TaskCard from "./TaskCard"; 
 import "./Board.css";
-// Added DragOverlay component to fix the drag lockup bug
 import { DndContext, useDroppable, closestCorners, PointerSensor, useSensor, useSensors, DragOverlay } from "@dnd-kit/core";
 import type { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
-import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable";
+import { SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { Task } from "./types";
 
@@ -20,20 +21,23 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3001
 export default function Board({ setIsLoggedIn }: BoardProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [activeTask, setActiveTask] = useState<Task | null>(null); // Track currently dragged item
+  const [activeTask, setActiveTask] = useState<Task | null>(null); 
 
-  /* Sprint 4 Interactive Gating Overlay States */
+  const [detailedTask, setDetailedTask] = useState<Task | null>(null);
   const [wipLogTask, setWipLogTask] = useState<Task | null>(null);
   const [testingGateTask, setTestingGateTask] = useState<Task | null>(null);
 
-  /* Core Transition Interceptive Modal States */
   const [schedulingTask, setSchedulingTask] = useState<Task | null>(null);
   const [scheduleFormData, setScheduleFormData] = useState({ startDate: "", endDate: "", effortRequired: "" });
 
   const [deployingTask, setDeployingTask] = useState<Task | null>(null);
   const [deployFormData, setDeployFormData] = useState({ deployedTime: "", deploymentType: "feature_update" });
+  
+  const [editTask, setEditTask] = useState<Task | null>(null);
+  const [editFormData, setEditFormData] = useState({ name: "", description: "", testCasesString: "" });
 
-  /* Sensors prevent child buttons from triggering unexpected item drag events */
+  const [previousStatusCache, setPreviousStatusCache] = useState<string | null>(null);
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { delay: 80, tolerance: 5 } })
   );
@@ -46,7 +50,17 @@ export default function Board({ setIsLoggedIn }: BoardProps) {
       if (!userId) return;
       const res = await fetch(`${API_BASE_URL}/api/tasks/${userId}`);
       if (!res.ok) throw new Error("Failed to fetch tasks");
-      setTasks(await res.json());
+      const freshTasks = await res.json();
+      setTasks(freshTasks);
+
+      if (detailedTask) {
+        const syncDetail = freshTasks.find((t: Task) => t.id === detailedTask.id);
+        if (syncDetail) setDetailedTask(syncDetail);
+      }
+      if (wipLogTask) {
+        const syncWip = freshTasks.find((t: Task) => t.id === wipLogTask.id);
+        setWipLogTask(syncWip || null);
+      }
     } catch (error) {
       console.error("Error fetching tasks:", error);
     }
@@ -82,16 +96,27 @@ export default function Board({ setIsLoggedIn }: BoardProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           status: "Scheduled",
-          ...scheduleFormData
+          startDate: scheduleFormData.startDate,
+          endDate: scheduleFormData.endDate,
+          effortRequired: Number(scheduleFormData.effortRequired)
         }),
       });
       if (!res.ok) throw new Error("Scheduling failed");
       setSchedulingTask(null);
+      setPreviousStatusCache(null);
       setScheduleFormData({ startDate: "", endDate: "", effortRequired: "" });
       fetchTasks();
     } catch (error) {
       console.error(error);
     }
+  };
+
+  const handleScheduleCancel = () => {
+    if (schedulingTask && previousStatusCache) {
+      setTasks(prev => prev.map(t => t.id === schedulingTask.id ? { ...t, status: previousStatusCache } : t));
+    }
+    setSchedulingTask(null);
+    setPreviousStatusCache(null);
   };
 
   const handleDeploySubmit = async (e: React.FormEvent) => {
@@ -111,10 +136,60 @@ export default function Board({ setIsLoggedIn }: BoardProps) {
       if (!res.ok) throw new Error("Deployment failed");
 
       setDeployingTask(null);
+      setPreviousStatusCache(null);
       setDeployFormData({ deployedTime: "", deploymentType: "feature_update" });
       fetchTasks();
     } catch (error) {
       console.error(error);
+    }
+  };
+
+  const handleDeployCancel = () => {
+    if (deployingTask && previousStatusCache) {
+      setTasks(prev => prev.map(t => t.id === deployingTask.id ? { ...t, status: previousStatusCache } : t));
+    }
+    setDeployingTask(null);
+    setPreviousStatusCache(null);
+  };
+
+  const openEditTask = (task: Task) => {
+    setEditTask(task);
+    setEditFormData({
+      name: task.name,
+      description: task.description || "",
+      testCasesString: task.testCases ? task.testCases.join(", ") : ""
+    });
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editTask) return;
+
+    try {
+      const testCasesArray = editFormData.testCasesString
+        .split(",")
+        .map(tc => tc.trim())
+        .filter(tc => tc.length > 0);
+
+      const payload: any = {
+        name: editFormData.name,
+        description: editFormData.description,
+        testCases: testCasesArray 
+      };
+
+      const res = await fetch(`${API_BASE_URL}/api/tasks/${editTask.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) throw new Error("Failed to edit task");
+
+      setEditTask(null);
+      fetchTasks();
+    } catch (error) {
+      console.error(error);
+      alert("Unable to save task edits.");
     }
   };
 
@@ -125,15 +200,19 @@ export default function Board({ setIsLoggedIn }: BoardProps) {
 
   const toggleWorkStatus = async (taskId: string, current?: string) => {
     const newStatus = current === "Completed" ? "Pending" : "Completed";
-    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, workStatus: newStatus } : t));
+    
     try {
-      await fetch(`${API_BASE_URL}/api/tasks/${taskId}`, {
+      const res = await fetch(`${API_BASE_URL}/api/tasks/${taskId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ workStatus: newStatus }),
       });
+      
+      if (res.ok) {
+        fetchTasks();
+      }
     } catch {
-      fetchTasks();
+      await fetchTasks();
     }
   };
 
@@ -142,7 +221,7 @@ export default function Board({ setIsLoggedIn }: BoardProps) {
     if (!task || task.workStatus !== "Completed") {
       return alert("Task must be marked Completed before moving to Testing.");
     }
-    setTestingGateTask(task);
+    setTestingGateTask({ ...task, testCases: task.testCases ?? [] });
   };
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -152,77 +231,75 @@ export default function Board({ setIsLoggedIn }: BoardProps) {
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
-    setActiveTask(null); // Clear active item cache
+    setActiveTask(null);
     if (!over) return;
 
-    const taskId = active.id as string;
-    const overId = over.id as string;
-
-    const task = tasks.find(t => t.id === taskId);
+    const taskId = String(active.id);
+    const task = tasks.find((t) => String(t.id) === taskId);
     if (!task) return;
 
-    // 1. Correctly isolate the destination status
-    let newStatus = overId;
-    const overTask = tasks.find(t => t.id === overId);
+    const overId = String(over.id);
     
-    if (overTask) {
-      newStatus = overTask.status || "Backlog";
+    let destinationStatus: string | undefined = undefined;
+    if (COLUMNS.includes(overId)) {
+      destinationStatus = overId;
+    } else {
+      const overTask = tasks.find((t) => String(t.id) === overId);
+      destinationStatus = overTask?.status;
     }
 
-    // Safeguard: If the destination string isn't part of our tracking columns array, reject it
-    if (!COLUMNS.includes(newStatus)) return;
+    if (!destinationStatus || !COLUMNS.includes(destinationStatus)) return;
 
     const currentStatus = task.status || "Backlog";
     const currentIdx = COLUMNS.indexOf(currentStatus);
-    const newIdx = COLUMNS.indexOf(newStatus);
+    const destinationIdx = COLUMNS.indexOf(destinationStatus);
 
-    // 2. Handle Intra-Column Sorting (Moving cards up/down in the same lane)
-    if (currentStatus === newStatus) {
-      if (taskId !== overId) {
-        setTasks((prevTasks) => {
-          const oldIndex = prevTasks.findIndex((t) => t.id === taskId);
-          const newIndex = prevTasks.findIndex((t) => t.id === overId);
-          return arrayMove(prevTasks, oldIndex, newIndex);
-        });
-      }
+    if (destinationStatus === currentStatus) return;
+
+    if (destinationIdx < currentIdx) {
+      alert("Invalid Action: You cannot manually drag items backward in the workflow sequence.");
       return;
     }
 
-    // 3. Handle Strict Step-by-Step Transition Validation Gating
-    if (newIdx !== currentIdx + 1) {
-      return alert("You can only move cards step-by-step.");
+    if (destinationIdx > currentIdx + 1) {
+      alert("You can only move cards step-by-step.");
+      return;
     }
 
-    // 4. Intercept target phases to bring up data forms
-    if (newStatus === "Scheduled") {
+    setPreviousStatusCache(currentStatus);
+
+    if (destinationStatus === "Scheduled") {
+      setTasks((prev) => prev.map((t) => (t.id === task.id ? { ...t, status: "Scheduled" } : t)));
       setSchedulingTask(task);
       return;
     }
-    if (newStatus === "Testing") {
+
+    if (destinationStatus === "Testing") {
       if (task.workStatus !== "Completed") {
-        return alert("Complete work requirements before moving to Testing.");
+        alert("Complete work requirements before moving to Testing.");
+        fetchTasks();
+        return;
       }
-      setTestingGateTask(task);
+      setTestingGateTask({ ...task, testCases: task.testCases ?? [] });
       return;
     }
-    if (newStatus === "Deployed") {
+
+    if (destinationStatus === "Deployed") {
+      setTasks((prev) => prev.map((t) => (t.id === task.id ? { ...t, status: "Deployed" } : t)));
       setDeployingTask(task);
       return;
     }
 
-    // 5. Normal workflow updates (e.g., Scheduled -> Work In Progress)
     try {
       const res = await fetch(`${API_BASE_URL}/api/tasks/${taskId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus }),
+        body: JSON.stringify({ status: destinationStatus }),
       });
-      if (res.ok) {
-        fetchTasks();
-      }
+      if (res.ok) fetchTasks();
     } catch (error) {
-      console.error("Failed to move card smoothly:", error);
-      fetchTasks(); // Snaps card back into place locally on network error
+      console.error(error);
+      fetchTasks();
     }
   };
 
@@ -248,56 +325,75 @@ export default function Board({ setIsLoggedIn }: BoardProps) {
               tasks={tasks.filter(t => (t.status || "Backlog") === col)}
               onToggleWorkStatus={toggleWorkStatus}
               onMoveToTesting={moveToTesting}
-              onSelectTaskForLog={setWipLogTask}
+              onSelectTaskForLog={setWipLogTask} 
               onSelectTaskForTesting={setTestingGateTask}
+              onSelectTaskForDetails={setDetailedTask}
+              onEditTask={openEditTask}
             />
           ))}
         </div>
 
         <DragOverlay>
-          {activeTask ? (
-            <div className="kanban-card dragging-clone" style={{ opacity: 0.8, transform: 'scale(1.02)' }}>
-              <div className="card-drag-handle">
-                <h4>{activeTask.name}</h4>
-                <div className="drag-indicator">⋮⋮</div>
-              </div>
-              <div className="card-body-content">
-                <p>{activeTask.description}</p>
-              </div>
-            </div>
-          ) : null}
+          {activeTask ? <TaskCard task={activeTask} /> : null}
         </DragOverlay>
       </DndContext>
 
       <CreateTaskModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSubmit={createTask} />
 
+      {detailedTask && (
+        <TaskDetailsModal task={detailedTask} onClose={() => setDetailedTask(null)} />
+      )}
+
       {wipLogTask && (
         <WipTaskModal 
           task={wipLogTask} 
           onClose={() => setWipLogTask(null)} 
-          onUpdate={() => { 
-            fetchTasks(); 
-            setWipLogTask(null); 
-          }} 
+          onUpdate={() => { fetchTasks(); }} 
         />
       )}
 
       {testingGateTask && (
         <TestingTaskModal 
           task={testingGateTask}
-          onClose={() => setTestingGateTask(null)}
-          onUpdate={() => {
-            fetchTasks();
-            setTestingGateTask(null);
-          }}
+          onClose={() => { fetchTasks(); setTestingGateTask(null); }}
+          onUpdate={() => { fetchTasks(); setTestingGateTask(null); }}
         />
       )}
 
-      {/* SCHEDULE MODAL */}
-      {schedulingTask && (
-        /* ✅ ADDED POINTER INTERCEPTION: Prevents DnD engine layout hooks from blocking inputs */
+      {editTask && (
         <div className="modal-overlay" onPointerDown={e => e.stopPropagation()}>
-          <div className="modal-content" onPointerDown={e => e.stopPropagation()}>
+          <div className="modal-content">
+            <h3>Edit Task: {editTask.name}</h3>
+            <form onSubmit={handleEditSubmit}>
+              <div className="form-group">
+                <label>Task Name</label>
+                <input type="text" required value={editFormData.name} onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })} />
+              </div>
+              <div className="form-group">
+                <label>Description</label>
+                <textarea value={editFormData.description} onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })} />
+              </div>
+              <div className="form-group">
+                <label>Test Cases (Separate with commas)</label>
+                <input 
+                  type="text" 
+                  placeholder="e.g. Unit Integration Test, Regression Test"
+                  value={editFormData.testCasesString} 
+                  onChange={(e) => setEditFormData({ ...editFormData, testCasesString: e.target.value })} 
+                />
+              </div>
+              <div className="modal-actions">
+                <button type="button" className="btn-secondary" onClick={() => setEditTask(null)}>Cancel</button>
+                <button type="submit" className="btn-primary">Save Changes</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {schedulingTask && (
+        <div className="modal-overlay" onPointerDown={e => e.stopPropagation()}>
+          <div className="modal-content">
             <h3>Schedule Task: {schedulingTask.name}</h3>
             <form onSubmit={handleScheduleSubmit}>
               <div className="form-group">
@@ -313,7 +409,7 @@ export default function Board({ setIsLoggedIn }: BoardProps) {
                 <input type="number" required value={scheduleFormData.effortRequired} onChange={e => setScheduleFormData({...scheduleFormData, effortRequired: e.target.value})} />
               </div>
               <div className="modal-actions">
-                <button type="button" className="btn-secondary" onClick={() => setSchedulingTask(null)}>Cancel</button>
+                <button type="button" className="btn-secondary" onClick={handleScheduleCancel}>Cancel</button>
                 <button type="submit" className="btn-primary">Confirm Schedule</button>
               </div>
             </form>
@@ -321,11 +417,9 @@ export default function Board({ setIsLoggedIn }: BoardProps) {
         </div>
       )}
 
-      {/* DEPLOYMENT MODAL */}
       {deployingTask && (
-        /* ✅ ADDED POINTER INTERCEPTION: Guarantees text fields and selectors remain interactive */
         <div className="modal-overlay" onPointerDown={e => e.stopPropagation()}>
-          <div className="modal-content" onPointerDown={e => e.stopPropagation()}>
+          <div className="modal-content">
             <h3>Deploy Task: {deployingTask.name}</h3>
             <form onSubmit={handleDeploySubmit}>
               <div className="form-group">
@@ -341,7 +435,7 @@ export default function Board({ setIsLoggedIn }: BoardProps) {
                 </select>
               </div>
               <div className="modal-actions">
-                <button type="button" className="btn-secondary" onClick={() => setDeployingTask(null)}>Cancel</button>
+                <button type="button" className="btn-secondary" onClick={handleDeployCancel}>Cancel</button>
                 <button type="submit" className="btn-primary">Complete Deployment</button>
               </div>
             </form>
@@ -352,12 +446,9 @@ export default function Board({ setIsLoggedIn }: BoardProps) {
   );
 }
 
-function DroppableColumn({ title, tasks, onToggleWorkStatus, onMoveToTesting, onSelectTaskForLog, onSelectTaskForTesting }: any) {
+function DroppableColumn({ title, tasks, onToggleWorkStatus, onMoveToTesting, onSelectTaskForLog, onSelectTaskForTesting, onSelectTaskForDetails, onEditTask }: any) {
   const { setNodeRef, isOver } = useDroppable({ id: title });
-  
-  // ✅ DRAG-DROP FIX: Combines task IDs with the column container ID so @dnd-kit recognizes
-  // the entire column as a valid drop zone, enabling drops to empty columns and container zones
-  const columnItems = [...tasks.map((t: Task) => t.id), title];
+  const columnItems = tasks.map((t: Task) => String(t.id));
 
   return (
     <div ref={setNodeRef} className="kanban-column" style={{ borderColor: isOver ? "#2563eb" : "transparent" }}>
@@ -369,9 +460,11 @@ function DroppableColumn({ title, tasks, onToggleWorkStatus, onMoveToTesting, on
               key={t.id} 
               task={t} 
               onToggleWorkStatus={onToggleWorkStatus} 
-              onMoveToTesting={onMoveToTesting} 
+              onMoveToTesting={onMoveToTesting}
               onSelectTaskForLog={onSelectTaskForLog} 
               onSelectTaskForTesting={onSelectTaskForTesting}
+              onSelectTaskForDetails={onSelectTaskForDetails}
+              onEditTask={onEditTask}
             />
           ))}
         </div>
@@ -380,8 +473,8 @@ function DroppableColumn({ title, tasks, onToggleWorkStatus, onMoveToTesting, on
   );
 }
 
-function DraggableCard({ task, onToggleWorkStatus, onMoveToTesting, onSelectTaskForLog, onSelectTaskForTesting }: any) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id });
+function DraggableCard({ task, onToggleWorkStatus, onMoveToTesting, onSelectTaskForLog, onSelectTaskForTesting, onSelectTaskForDetails, onEditTask }: any) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: String(task.id) });
   
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -389,49 +482,57 @@ function DraggableCard({ task, onToggleWorkStatus, onMoveToTesting, onSelectTask
     opacity: isDragging ? 0.3 : 1, 
   };
 
+  const actualTimeHours = task.timeLogs?.reduce((sum: number, log: any) => sum + Number(log.hoursSpent || 0), 0) || 0;
+
   return (
-    <div 
-      ref={setNodeRef} 
-      style={style} 
-      className="kanban-card"
-      onDoubleClick={() => {
-        if (task.status === "Work In Progress") {
-          onSelectTaskForLog(task);
-        }
-      }}
-    >
-      <div className="card-drag-handle" {...listeners} {...attributes}>
-        <h4>{task.name}</h4>
-        <div className="drag-indicator">⋮⋮</div>
+    <div ref={setNodeRef} style={style} className="kanban-card-wrapper">
+      <div className="card-drag-handle-wrapper" {...listeners} {...attributes}>
+        <TaskCard task={task} />
       </div>
 
-      <div className="card-body-content">
-        <p>{task.description}</p>
+      <div className="card-interactive-actions-overlay" onPointerDown={e => e.stopPropagation()}>
+        <div style={{ padding: "0 12px 12px 12px", marginTop: "-4px" }}>
+          {actualTimeHours > 0 && (
+            <div style={{ fontSize: "11px", color: "#4b5563", marginBottom: "6px", backgroundColor: "#f3f4f6", padding: "2px 6px", borderRadius: "4px", display: "inline-block" }}>
+              ⏱️ Logged: {actualTimeHours.toFixed(1)} hrs
+            </div>
+          )}
+          <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+            <button type="button" onClick={() => onSelectTaskForDetails(task)} style={{ background: "none", border: "none", color: "#2563eb", fontSize: "12px", cursor: "pointer", padding: "4px 0", fontWeight: 500 }}>
+              🔎 View Details & History
+            </button>
+            <button type="button" onClick={() => onEditTask(task)} style={{ background: "none", border: "none", color: "#10b981", fontSize: "12px", cursor: "pointer", padding: "4px 0", fontWeight: 500 }}>
+              ✏️ Edit Task
+            </button>
+            {/* ✅ FIXED: Trigger condition verifies status bounds dynamically */}
+            {task.status === "Work In Progress" && (
+              <button type="button" onClick={() => onSelectTaskForLog(task)} style={{ background: "none", border: "none", color: "#ea580c", fontSize: "12px", cursor: "pointer", padding: "4px 0", fontWeight: 600 }}>
+                ⏱️ Log WIP Effort
+              </button>
+            )}
+          </div>
+        </div>
+
+        {task.status === "Work In Progress" && (
+          <div className="card-controls" style={{ padding: "0 12px 12px 12px", display: "flex", gap: "8px", alignItems: "center" }}>
+            <label style={{ fontSize: "12px" }}>
+              <input type="checkbox" checked={task.workStatus === "Completed"} onChange={() => onToggleWorkStatus(task.id, task.workStatus)} />
+              Completed
+            </label>
+            <button disabled={task.workStatus !== "Completed"} onClick={() => onMoveToTesting(task.id)} style={{ fontSize: "11px", padding: "4px 8px" }}>
+              Send to Testing
+            </button>
+          </div>
+        )}
+
+        {task.status === "Testing" && (
+          <div className="card-controls" style={{ padding: "0 12px 12px 12px" }}>
+            <button className="btn-primary" onClick={() => onSelectTaskForTesting(task)} style={{ fontSize: "11px", padding: "4px 8px", width: "100%" }}>
+              Log Test Results
+            </button>
+          </div>
+        )}
       </div>
-
-      {task.status === "Work In Progress" && (
-        <div className="card-controls" onPointerDown={e => e.stopPropagation()}>
-          <label>
-            <input
-              type="checkbox"
-              checked={task.workStatus === "Completed"}
-              onChange={() => onToggleWorkStatus(task.id, task.workStatus)}
-            />
-            Completed
-          </label>
-          <button disabled={task.workStatus !== "Completed"} onClick={() => onMoveToTesting(task.id)}>
-            Send to Testing
-          </button>
-        </div>
-      )}
-
-      {task.status === "Testing" && (
-        <div className="card-controls" onPointerDown={e => e.stopPropagation()}>
-          <button className="btn-primary" onClick={() => onSelectTaskForTesting(task)}>
-            Log Test Results
-          </button>
-        </div>
-      )}
     </div>
   );
 }
