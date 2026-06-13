@@ -17,31 +17,24 @@ export default function Login({ setIsLoggedIn }: Props) {
     password: "",
   });
 
-  const handleChange = (
-    e: ChangeEvent<HTMLInputElement>
-  ) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
     });
   };
 
-  const handleSubmit = async (
-    e: FormEvent<HTMLFormElement>
-  ) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/api/auth/login`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(formData),
-        }
-      );
+      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
 
       const data = await response.json();
 
@@ -54,7 +47,6 @@ export default function Login({ setIsLoggedIn }: Props) {
       localStorage.setItem("username", data.username);
 
       setIsLoggedIn(true);
-
       navigate("/");
     } catch (error) {
       console.error(error);
@@ -64,16 +56,18 @@ export default function Login({ setIsLoggedIn }: Props) {
 
   return (
     <div className="auth-container">
-      <h2>Login</h2>
+      {/* 
+        ✅ Form acts as a single structured card.
+        All elements are nested inside to leverage the column gap style cleanly!
+      */}
+      <form className="auth-form" onSubmit={handleSubmit}>
+        <h2>Login</h2>
 
-      <form
-        className="auth-form"
-        onSubmit={handleSubmit}
-      >
         <input
           type="email"
           name="email"
           placeholder="Email"
+          value={formData.email}
           onChange={handleChange}
           required
         />
@@ -82,21 +76,17 @@ export default function Login({ setIsLoggedIn }: Props) {
           type="password"
           name="password"
           placeholder="Password"
+          value={formData.password}
           onChange={handleChange}
           required
         />
 
-        <button type="submit">
-          Login
-        </button>
-      </form>
+        <button type="submit">Login</button>
 
-      <p
-        className="switch"
-        onClick={() => navigate("/signup")}
-      >
-        Create new account
-      </p>
+        <p className="switch" onClick={() => navigate("/signup")}>
+          Create new account
+        </p>
+      </form>
     </div>
   );
 }
