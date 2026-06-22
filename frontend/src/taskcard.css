@@ -4,51 +4,45 @@
 
 /* --- TASK CARD CONTAINMENT BOX --- */
 /* Encloses all card contents inside a protective box padded at an equal distance from the borders */
-.task-card, .task-card-container-box {
-  padding: 16px;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  background-color: #ffffff;
+.task-card, .kanban-card {
+  padding: 24px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-medium);
+  background-color: var(--color-surface-white);
   box-sizing: border-box;
   width: 100%;
   display: flex;
   flex-direction: column;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-/* --- CENTERED HEADER TASK NAME --- */
-/* Centers the task name text within the header banner block space */
-.task-card-header-name {
-  text-align: center;
-  margin: 0 auto 12px auto;
-  font-size: 14px;
-  font-weight: 700;
-  color: #1e293b;
+.kanban-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.05);
 }
 
-/* --- CENTERED KANBAN CARD TITLE --- */
-/* Centers the title text explicitly and prevents it from leaning or touching edges */
 .kanban-card-title {
-  text-align: center;
-  margin: 0 auto 8px auto;
-  width: 100%;
-  box-sizing: border-box;
+  text-align: left;
+  margin: 12px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  line-height: 1.4;
 }
 
 .task-labels-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin: 4px 0 8px;
+  gap: 8px;
+  margin: 8px 0;
 }
 
 .task-label-chip {
-  font-size: 10px;
-  font-weight: 600;
-  line-height: 1;
-  padding: 4px 8px;
-  border-radius: 9999px;
-  border: 1px solid #e2e8f0;
-  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-border);
 }
 
 /* --- METRICS ROW LAYOUT (Task Card Face) --- */
@@ -65,50 +59,47 @@
 .metric-badge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  font-size: 11px;
+  gap: 6px;
+  font-size: 12px;
   font-weight: 500;
-  padding: 4px 8px; /* Enhanced padding to keep content off the borders */
-  border-radius: 4px;
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
   background-color: #f8fafc;
-  border: 1px solid #f1f5f9;
-  color: #64748b; /* Clean neutral slate gray */
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
   transition: all 0.15s ease;
   box-sizing: border-box;
 }
 
 .metric-icon {
-  font-size: 11px;
+  font-size: 12px;
   opacity: 0.8;
 }
 
-/* Soft, minimal light variant backgrounds (No harsh color walls) */
-.metric-badge.budgeted {
-  background-color: #f0fdf4;
-  border-color: #e2fbe8;
-  color: #16a34a;
+.kanban-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
 }
 
-.metric-badge.logged {
-  background-color: #f0f9ff;
-  border-color: #e0f2fe;
-  color: #0284c7;
+.validation-summary-badge {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  background: #f1f5f9;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
 }
 
-/* Alert styling when actual logged effort exceeds scheduled amount */
-.metric-badge.logged.overtime {
-  background-color: #fff5f5;
-  border-color: #ffe4e6;
-  color: #dc2626;
-}
 /* --- STATUS LABEL BADGES --- */
 .kanban-card-status {
-  font-size: 10px;
-  font-weight: 600;
-  padding: 4px 10px; /* Increased padding to separate text safely from container edges */
-  border-radius: 9999px; /* Pill Shape */
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
   display: inline-block;
   box-sizing: border-box;
 }

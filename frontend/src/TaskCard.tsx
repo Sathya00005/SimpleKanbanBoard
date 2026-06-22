@@ -83,10 +83,14 @@ export default function TaskCard({ task }: TaskCardProps) {
   return (
     <li className="kanban-card" style={cardStyle}>
       <div className="kanban-card-header">
-        <span className="kanban-card-id"></span>
         <span className={`kanban-card-status status-${statusClass}`}>
           {task.status || 'Backlog'}
         </span>
+        {allValidationItems.length > 0 && (
+          <div className="validation-summary-badge" title={`Passed: ${passedCount}, Failed: ${failedCount}, Pending: ${pendingCount}`}>
+            {passedCount}✓ {failedCount > 0 && `${failedCount}✗`}
+          </div>
+        )}
       </div>
 
       <h4 className="kanban-card-title">{task.name}</h4>
@@ -98,6 +102,31 @@ export default function TaskCard({ task }: TaskCardProps) {
             return (
               <span
                 key={`${label.name}-${index}`}
+                className="task-label-chip"
+                style={{
+                  backgroundColor: `${labelColor}15`,
+                  borderColor: labelColor,
+                  color: labelColor
+                }}
+              >
+                {label.name}
+              </span>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="task-card-metrics">
+        <div className="metric-badge">
+          <span className="metric-icon">Est:</span> {scheduledEffort}h
+        </div>
+        <div className={`metric-badge ${wipState === 'overtime' ? 'overtime' : ''}`}>
+          <span className="metric-icon">Log:</span> {totalActualEffort}h
+        </div>
+      </div>
+    </li>
+  );
+}
                 className="task-label-chip"
                 style={{
                   borderColor: labelColor,

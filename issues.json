@@ -1,0 +1,18 @@
+[
+  {
+    "title": "UI: Align implementation with Design System Token Spec",
+    "body": "The current CSS implementation significantly deviates from the [design_system.md](planning/design_system.md). Specifically, border-radii and button shapes need to be updated to the 'Soft & Friendly' specification (24px-32px radii, pill-shaped buttons)."
+  },
+  {
+    "title": "UX: Collapse Task Card Validation Summary",
+    "body": "The current Task Card is visually overcrowded with two rows of validation stats. These should be collapsed into a single summary badge with a progressive disclosure (tooltip) for individual categories."
+  },
+  {
+    "title": "UX: Implement Tab-based Architecture for Testing Modal",
+    "body": "The Testing Modal currently uses 6 horizontal columns, forcing horizontal scrolling and increasing cognitive load. This should be replaced with a tab-based interface where each validation category is managed in its own tab."
+  },
+  {
+    "title": "UI: Consolidate Board Header and Toolbar",
+    "body": "The Board Header and Toolbar are currently fragmented across three horizontal zones. Consolidate these into a single control row to maximize vertical space for the Kanban board."
+  }
+]

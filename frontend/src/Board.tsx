@@ -607,46 +607,27 @@ export default function Board({ setIsLoggedIn }: BoardProps) {
       <header className="board-header">
         <div>
           <h2>Integrated Kanban Board</h2>
-          <p>Welcome, {username} | Workspace: {selectedRepo.name}</p>
+          <p>
+            {username} | {selectedRepo.name} | 
+            Active: <strong>{boardStats.active}</strong> • 
+            Failed: <strong style={{color: 'red'}}>{boardStats.failed}</strong> • 
+            Testing: <strong>{boardStats.testing}</strong>
+          </p>
         </div>
         <div className="board-controls">
-          <button className="btn-secondary" onClick={() => setWorkspaceInitialized(false)}>← Back to Projects</button>
+          <input
+            type="text"
+            placeholder="Search tasks..."
+            className="toolbar-search"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
           <button className="btn-primary" onClick={() => setIsModalOpen(true)}>+ Create Task</button>
+          <button className="btn-secondary" onClick={() => setWorkspaceInitialized(false)}>Back</button>
           <button className="btn-secondary" onClick={logout}>Logout</button>
         </div>
       </header>
 
-      <div className="board-toolbar">
-        <input
-          type="text"
-          placeholder="Search tasks by name, description, #id..."
-          className="toolbar-search"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-        <div className="toolbar-actions">
-          <select className="toolbar-dropdown" value={sortOrder} onChange={(e) => setSortOrder(e.target.value)}>
-            <option value="failed-first">Sort: Failed First</option>
-            <option value="priority">Sort: Highest Priority</option>
-            <option value="recently-updated">Sort: Recently Updated</option>
-            <option value="recently-created">Sort: Recently Created</option>
-            <option value="alphabetical-az">Sort: A-Z</option>
-            <option value="alphabetical-za">Sort: Z-A</option>
-          </select>
-          <label className="toolbar-toggle">
-            <input type="checkbox" checked={showClosed} onChange={(e) => setShowClosed(e.target.checked)} />
-            Show Closed
-          </label>
-        </div>
-      </div>
-
-      <div className="board-stats">
-        <span>Active: <strong>{boardStats.active}</strong></span>
-        <span>Failed: <strong style={{color: 'red'}}>{boardStats.failed}</strong></span>
-        <span>Testing: <strong>{boardStats.testing}</strong></span>
-        <span>Deployed: <strong>{boardStats.deployed}</strong></span>
-      </div>
-      {/* Main Kanban Board Context */}
       <div style={{ display: "block" }}>
         <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           <div className="kanban-grid">
