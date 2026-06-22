@@ -30,8 +30,16 @@ export const createTask = async (req: Request, res: Response) => {
         name,
         description: description || "",
         status: "Backlog",
+        priority: "Medium",
         userId,
-        testCases: ["Unit Integration Test", "Regression Test Run"]
+        testCases: ["Unit Integration Test", "Regression Test Run"],
+        acceptanceCriteria: [],
+        positiveTestCases: [],
+        negativeTestCases: [],
+        edgeCases: [],
+        technicalNotes: [],
+        definitionOfDone: [],
+        dependencies: [],
       }
     });
 
@@ -61,24 +69,7 @@ export const getTasks = async (req: Request, res: Response) => {
       }
     });
 
-    const backlogTasks = tasks.filter((t: any) => t.status === "Backlog");
-    const otherTasks = tasks.filter((t: any) => t.status !== "Backlog");
-
-    backlogTasks.sort((a: any, b: any) => {
-      const aFailed = a.history.some((h: any) => h.eventType === "TEST_FAILED");
-      const bFailed = b.history.some((h: any) => h.eventType === "TEST_FAILED");
-
-      if (aFailed && bFailed) {
-        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-      }
-      if (aFailed) return -1; 
-      if (bFailed) return 1;  
-
-      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-    });
-
-    const combinedTasks = [...backlogTasks, ...otherTasks];
-    return res.status(200).json(combinedTasks);
+    return res.status(200).json(tasks);
   } catch (error) {
     console.error("Error fetching tasks:", error);
     return res.status(500).json({ error: "Internal server error" });
@@ -105,9 +96,22 @@ export const updateTask = async (req: Request, res: Response) => {
     if (req.body.name !== undefined) updateData.name = req.body.name;
     if (req.body.description !== undefined) updateData.description = req.body.description;
     if (req.body.status !== undefined) updateData.status = req.body.status;
+    if (req.body.priority !== undefined) updateData.priority = req.body.priority;
     if (req.body.workStatus !== undefined) updateData.workStatus = req.body.workStatus;
     if (req.body.deploymentType !== undefined) updateData.deploymentType = req.body.deploymentType;
     if (req.body.testCases !== undefined) updateData.testCases = req.body.testCases;
+    if (req.body.acceptanceCriteria !== undefined) updateData.acceptanceCriteria = req.body.acceptanceCriteria;
+    if (req.body.positiveTestCases !== undefined) updateData.positiveTestCases = req.body.positiveTestCases;
+    if (req.body.negativeTestCases !== undefined) updateData.negativeTestCases = req.body.negativeTestCases;
+    if (req.body.edgeCases !== undefined) updateData.edgeCases = req.body.edgeCases;
+    if (req.body.technicalNotes !== undefined) updateData.technicalNotes = req.body.technicalNotes;
+    if (req.body.definitionOfDone !== undefined) updateData.definitionOfDone = req.body.definitionOfDone;
+    if (req.body.dependencies !== undefined) updateData.dependencies = req.body.dependencies;
+    if (req.body.isClosed !== undefined) {
+      updateData.isClosed = req.body.isClosed;
+      updateData.closedAt = req.body.isClosed ? new Date() : null;
+      // In a real app, you'd get the user ID from the session/token
+    }
 
     if (req.body.startDate) updateData.startDate = new Date(req.body.startDate);
     if (req.body.endDate) updateData.endDate = new Date(req.body.endDate);

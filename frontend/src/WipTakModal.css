@@ -1,0 +1,399 @@
+/* ==========================================================================
+   Custom WipTaskModal Stylesheet (Scroll-Optimized & Flexible)
+   ========================================================================== */
+
+/* --- Fixed Viewport Overlay --- */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(15, 23, 42, 0.6); /* Slate backdrop */
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  overflow: hidden; /* Lock the viewport scroll */
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+/* --- Flexible Modal Box --- */
+.modal-content {
+  background: #ffffff;
+  border-radius: 14px;
+  width: 100%;
+  max-width: 820px;
+  
+  /* Critical Fix: Caps height dynamically and shifts overflow internally */
+  max-height: calc(100vh - 40px); 
+  display: flex;
+  flex-direction: column;
+  
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  position: relative;
+  border: 1px solid #e2e8f0;
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* --- Dynamic Theme Cards --- */
+/* Red Theme: Over Budget (actual hours > effort budget) */
+.modal-content.card-over-budget {
+  background-color: #fff5f5;
+  border: 2px solid #feb2b2;
+}
+.modal-content.card-over-budget h2, 
+.modal-content.card-over-budget h3 {
+  color: #9b1c1c;
+}
+
+/* Green Theme: Equal Budget (actual hours == effort budget) */
+.modal-content.card-equal-budget {
+  background-color: #f0fdf4;
+  border: 2px solid #bbf7d0;
+}
+.modal-content.card-equal-budget h2, 
+.modal-content.card-equal-budget h3 {
+  color: #166534;
+}
+
+/* Yellow Theme: Under Budget (actual hours < effort budget) */
+.modal-content.card-under-budget {
+  background-color: #fefce8;
+  border: 2px solid #fef08a;
+}
+.modal-content.card-under-budget h2, 
+.modal-content.card-under-budget h3 {
+  color: #854d0e;
+}
+
+/* --- Sticky/Static Close Button --- */
+.modal-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: #f1f5f9;
+  border: none;
+  font-size: 22px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #64748b;
+  z-index: 10;
+  transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+/* --- Non-Scrolling Header --- */
+.modal-header {
+  padding: 24px 64px 16px 24px; /* Generous right padding to avoid close button */
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  flex-shrink: 0; /* Prevents the header from getting squished */
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.modal-task-id {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  background: rgba(0, 0, 0, 0.05);
+  color: #475569;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 1.4rem;
+  color: #0f172a;
+  font-weight: 700;
+  flex: 1;
+  min-width: 200px;
+}
+
+.modal-status-badge {
+  background: #e0f2fe;
+  color: #0369a1;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* --- Internally Scrollable Body Section --- */
+.modal-body-wrapper {
+  overflow-y: auto; /* Re-enables natural fluid scrolling within bounds */
+  flex-grow: 1;
+  background: transparent; /* Allows card-level colors to flow contextually */
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  
+  /* Custom scrollbar adjustments for premium finish */
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+/* Custom Scrollbars for Webkit Browsers */
+.modal-body-wrapper::-webkit-scrollbar {
+  width: 8px;
+}
+.modal-body-wrapper::-webkit-scrollbar-track {
+  background: transparent;
+}
+.modal-body-wrapper::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 20px;
+}
+
+/* --- Scrollable Description Box --- */
+/* --- Expandable Description Box --- */
+.modal-desc-container {
+  max-height: 220px;        /* Increased height limit to give text ample room */
+  overflow-y: auto;         /* Displays a vertical scrollbar only if text passes 220px */
+  margin: 20px 24px 0 24px; /* Even spacing below header block */
+  padding-right: 8px;       /* Padding on the right so text doesn't touch scrollbar */
+  box-sizing: border-box;
+}
+
+.modal-desc {
+  margin: 0;
+  color: #334155;           /* Slightly darker gray for a cleaner look */
+  font-size: 1rem;          /* Standard, highly readable base text size */
+  line-height: 1.6;
+  word-break: break-word;   /* Prevents breaking layout layouts with giant strings */
+}
+
+/* Custom Minimalist Scrollbar specifically for the description text box */
+.modal-desc-container::-webkit-scrollbar {
+  width: 5px;
+}
+.modal-desc-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+.modal-desc-container::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.12);
+  border-radius: 99px;
+}
+.modal-desc-container::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.25);
+}
+
+/* --- Layout Grid --- */
+.modal-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 24px;
+  padding: 24px;
+  align-items: start; /* Prevents matching columns from stretching height paths layout-wise */
+}
+
+@media (max-width: 680px) {
+  .modal-grid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+    padding: 16px;
+  }
+}
+
+.modal-section h3 {
+  margin-top: 0;
+  margin-bottom: 16px;
+  font-size: 1.05rem;
+  color: #1e293b;
+}
+
+/* --- Form Flow Controls --- */
+.log-time-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.form-group label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.form-group input,
+.form-group textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  color: #0f172a;
+  background-color: #ffffff;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.modal-textarea {
+  min-height: 80px;
+  max-height: 120px; /* Rigid threshold capping space extraction limits */
+  resize: vertical;
+  font-family: inherit;
+}
+
+/* --- Sidebar Control Blocks --- */
+.log-history-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: 100%;
+}
+
+.metrics-summary-box,
+.status-toggle-box {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-sizing: border-box;
+}
+
+.metrics-summary-box span {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.95rem;
+  color: #475569;
+}
+
+.metrics-summary-box strong {
+  color: #0f172a;
+}
+
+.status-toggle-box label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #334155;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.status-indicator {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.status-indicator.pending {
+  background-color: #fef3c7;
+  color: #d97706;
+}
+
+.status-indicator.completed {
+  background-color: #dcfce7;
+  color: #15803d;
+}
+
+/* --- Interactive Elements --- */
+.btn-primary, .btn-secondary {
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 10px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: center;
+  border: 1px solid transparent;
+  box-sizing: border-box;
+}
+
+.btn-primary {
+  background-color: #2563eb;
+  color: white;
+  width: 100%;
+  margin-top: 4px; 
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: #1d4ed8;
+}
+
+.btn-primary:disabled {
+  background-color: #93c5fd;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background-color: #ffffff;
+  border-color: #cbd5e1;
+  color: #475569;
+}
+
+.btn-secondary:hover {
+  background-color: #f8fafc;
+  color: #0f172a;
+  border-color: #94a3b8;
+}
+
+.toggle-status-btn {
+  width: 100%;
+}
+
+/* --- Permanent Footer (Stays fixed at base of viewport) --- */
+.modal-actions-footer {
+  padding: 16px 24px;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  background: rgba(255, 255, 255, 0.2); /* Transparent to let theme color bleed down */
+  display: flex;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
+.close-window-btn {
+  width: auto;
+  min-width: 120px;
+}
+
+@media (max-width: 680px) {
+  .modal-actions-footer, .close-window-btn {
+    width: 100%;
+  }
+}
+
+/* --- Entry Animations --- */
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}

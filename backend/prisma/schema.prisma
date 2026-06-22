@@ -8,13 +8,22 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  username  String
-  email     String   @unique
-  password  String
-  createdAt DateTime @default(now())
+  id                        String    @id @default(auto()) @map("_id") @db.ObjectId
+  username                  String
+  email                     String    @unique
+  password                  String
+  isVerified                Boolean   @default(false)
+  signupVerificationCode    String?
+  signupCodeExpires         DateTime?
+  resetCode                 String?
+  resetCodeExpires          DateTime?
+  githubAccessToken         String?
+  githubAccessTokenUpdatedAt DateTime?
+  githubId                  String?   @unique
+  githubUsername            String?
+  createdAt                 DateTime  @default(now())
 
-  tasks     Task[]
+  tasks                     Task[]
 }
 
 model Task {
@@ -23,10 +32,25 @@ model Task {
   description     String
   status          String        @default("Backlog")
   userId          String        @db.ObjectId
+  githubIssueId   String?       @unique
+  githubRepo      String?
   workStatus      String        @default("Pending")
-  
-  // 🔽 ADD THIS LINE RIGHT HERE TO REGISTER THE ARRAY FIELD 🔽
-  testCases       String[]      
+  labels   Json? 
+  acceptanceCriteria Json?
+  testCases       Json?
+  positiveTestCases Json?
+  negativeTestCases Json?
+  edgeCases       Json?
+  technicalNotes  Json?
+  definitionOfDone Json?
+  deploymentDetails Json?
+  testingSummary Json?
+  failureReasons Json?
+  dependencies Json?
+  githubMetadata Json?
+  attachments Json?
+  riskAssessment Json?
+  aiAnalysis Json?
   
   startDate       DateTime?
   endDate         DateTime?

@@ -9,8 +9,8 @@ export const sessionMiddleware = session({
   saveUninitialized: false,
   cookie: {
     httpOnly: true, // Prevents client-side JS from reading the cookie
-    secure: isProduction, // Ensures cookie is sent over HTTPS only
-    sameSite: 'strict', // Mitigates CSRF attacks
+    secure: isProduction, // Ensures cookie is sent over HTTPS only in production
+    sameSite: 'none', // Required for cross-origin auth/session flows when frontend and backend are on different hosts
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
   },
 });

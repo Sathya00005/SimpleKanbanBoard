@@ -1,0 +1,224 @@
+/* ==========================================================================
+   Modal Overlay & Container
+   ========================================================================== */
+.task-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.task-modal-content {
+  background-color: #ffffff;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 800px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  overflow: hidden; /* Keeps the main modal clean */
+}
+
+.task-modal-title {
+  padding: 20px 24px;
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1e293b;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+/* ==========================================================================
+   Sections and Indivdual Scroll Layout
+   ========================================================================== */
+/* The container wrapping all sections needs to scroll if there are many sections */
+.task-modal-content > .task-section:first-of-type {
+  margin-top: 10px;
+}
+
+/* This targets the modal body implicitly through adjacent sections */
+.task-modal-content {
+  /* We allow the modal body to flex and handle overall scrolling if needed,
+     but the individual lists will handle their own internal scrolling first. */
+  padding-bottom: 0;
+}
+
+/* Wrap everything between title and footer in an optional scrollable container 
+   if you want the whole modal page to scroll as well. But for individual section scrolls, 
+   we enforce a max-height on the validation list itself: */
+
+.task-section {
+  padding: 12px 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+.task-section-title {
+  margin: 0 0 8px 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* --- THE KEY FOR SEPARATE SCROLLING --- */
+.validation-list {
+  max-height: 200px; /* Adjust this height based on how compact you want sections */
+  overflow-y: auto;
+  padding-right: 8px; /* Room for custom scrollbar */
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px solid #f1f5f9;
+  background-color: #f8fafc;
+  border-radius: 6px;
+  padding: 8px;
+}
+
+/* Custom Scrollbar styling for a cleaner look */
+.validation-list::-webkit-scrollbar {
+  width: 6px;
+}
+.validation-list::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+.validation-list::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+.validation-list::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* ==========================================================================
+   Validation Cards & Statuses
+   ========================================================================== */
+.validation-item-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 12px;
+  transition: all 0.2s ease;
+}
+
+.validation-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.validation-item-text {
+  font-size: 0.95rem;
+  color: #334155;
+  flex: 1;
+}
+
+/* Dynamic Borders based on state */
+.validation-item-card.passed { border-left: 4px solid #10b981; }
+.validation-item-card.failed { border-left: 4px solid #ef4444; }
+.validation-item-card.pending { border-left: 4px solid #64748b; }
+
+/* Form Controls */
+.validation-select {
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: 1px solid #cbd5e1;
+  background-color: #fff;
+  cursor: pointer;
+  outline: none;
+}
+
+.validation-select.passed { color: #10b981; border-color: #10b981; background-color: #f0fdf4; }
+.validation-select.failed { color: #ef4444; border-color: #ef4444; background-color: #fef2f2; }
+.validation-select.pending { color: #64748b; border-color: #cbd5e1; background-color: #fff; }
+
+/* Failure Input Field */
+.validation-item-failure {
+  margin-top: 8px;
+}
+
+.failure-reason-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #fca5a5;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  background-color: #fef2f2;
+  color: #991b1b;
+  box-sizing: border-box;
+}
+
+.failure-reason-input::placeholder {
+  color: #f87171;
+}
+
+.failure-reason-input:focus {
+  outline: none;
+  border-color: #ef4444;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+}
+
+/* Technical Notes */
+.task-info li {
+  color: #475569;
+  font-size: 0.9rem;
+  margin-bottom: 4px;
+}
+
+/* ==========================================================================
+   Footer & Buttons
+   ========================================================================== */
+.modal-actions-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 16px 24px;
+  border-top: 1px solid #e2e8f0;
+  background-color: #ffffff;
+  margin-top: auto; /* Pushes footer down */
+}
+
+.close-window-btn, .btn-primary {
+  padding: 10px 20px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  border: none;
+}
+
+.close-window-btn {
+  background-color: #f1f5f9;
+  color: #475569;
+}
+
+.close-window-btn:hover:not(:disabled) {
+  background-color: #e2e8f0;
+}
+
+.btn-primary {
+  background-color: #2563eb;
+  color: #ffffff;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: #1d4ed8;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

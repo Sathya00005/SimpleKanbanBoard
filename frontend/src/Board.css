@@ -52,15 +52,15 @@
 }
 
 /* --- BUTTON UI ENGINE --- */
-.btn-primary, 
-.board-controls button[type="submit"], 
+.btn-primary,
+.board-controls button[type="submit"],
 .modal-actions button[type="submit"] {
-  background: #0f172a; /* Modern obsidian gray */
+  background: #0f172a;
   color: #ffffff;
   border: none;
-  padding: 10px 16px;
-  border-radius: 8px;
-  font-size: 14px;
+  padding: 6px 12px; /* reduced from 10px 16px */
+  border-radius: 6px; /* reduced from 8px */
+  font-size: 12px; /* reduced from 14px */
   font-weight: 500;
   cursor: pointer;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
@@ -73,15 +73,15 @@
   background: #1e293b;
 }
 
-.btn-secondary, 
-.board-controls button:not([type="submit"]), 
+.btn-secondary,
+.board-controls button:not([type="submit"]),
 .modal-actions button[type="button"] {
   background: #ffffff;
   border: 1px solid #e2e8f0;
   color: #475569;
-  padding: 10px 16px;
-  border-radius: 8px;
-  font-size: 14px;
+  padding: 6px 12px; /* reduced from 10px 16px */
+  border-radius: 6px;
+  font-size: 12px; /* reduced from 14px */
   font-weight: 500;
   cursor: pointer;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
@@ -213,13 +213,17 @@
 /* --- MODALS GLASS & OVERLAY LAYERS --- */
 .modal-overlay {
   position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.3); /* Softer obsidian tint */
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
   display: flex;
-  justify-content: center;
   align-items: center;
-  z-index: 9999;
-  backdrop-filter: blur(4px); /* Modern frosted look */
+  justify-content: center;
+  z-index: 1000;
+  overflow: hidden; /* Prevents the background overlay from scrolling */
 }
 
 .modal-content {
@@ -239,7 +243,162 @@
   font-weight: 700;
   letter-spacing: -0.01em;
 }
+/* ==========================================
+   BOARD TOOLBAR
+   ========================================== */
+.board-toolbar {
+  display: flex;
+  flex-wrap: wrap; /* Wraps cleanly on smaller responsive screens */
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  background-color: #ffffff;
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
 
+/* Base interactive elements layout */
+.toolbar-search,
+.toolbar-dropdown {
+  font-family: inherit;
+  font-size: 14px;
+  color: #1e293b;
+  background-color: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 8px 14px;
+  outline: none;
+  transition: all 0.2s ease-in-out;
+}
+
+/* Search input specific styles */
+.toolbar-search {
+  width: 100%;
+  max-width: 360px;
+}
+
+.toolbar-search::placeholder {
+  color: #94a3b8;
+}
+
+/* Dropdown specific styles */
+.toolbar-dropdown {
+  cursor: pointer;
+  padding-right: 28px; /* Extra padding for native arrow dropdown spacing */
+}
+
+/* Shared Hover & Focus States for Search & Dropdown */
+.toolbar-search:hover,
+.toolbar-dropdown:hover {
+  background-color: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.toolbar-search:focus,
+.toolbar-dropdown:focus {
+  background-color: #ffffff;
+  border-color: #3b82f6; /* Modern Blue Accent */
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+/* Toolbar actions right side container */
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* Modernized Custom Toggle Switch (Show Closed) */
+.toolbar-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #475569;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Turns the native checkbox into a beautiful capsule switch */
+.toolbar-toggle input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 36px;
+  height: 20px;
+  background-color: #cbd5e1;
+  border-radius: 20px;
+  position: relative;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.toolbar-toggle input[type="checkbox"]::before {
+  content: "";
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  top: 2px;
+  left: 2px;
+  background-color: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease;
+}
+
+/* Toggle Active States */
+.toolbar-toggle input[type="checkbox"]:checked {
+  background-color: #10b981; /* Green active state */
+}
+
+.toolbar-toggle input[type="checkbox"]:checked::before {
+  transform: translateX(16px);
+}
+
+
+/* ==========================================
+   BOARD STATS BADGES
+   ========================================== */
+.board-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+/* Elegant badge look instead of plain text strings */
+.board-stats span {
+  display: inline-flex;
+  align-items: center;
+  background-color: #f1f5f9;
+  color: #475569;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid #e2e8f0;
+}
+
+.board-stats span strong {
+  margin-left: 6px;
+  color: #0f172a;
+}
+
+/* Overriding failed stats to have a semantic red badge profile */
+.board-stats span:has(strong[style*="color: red"]),
+.board-stats span:has(strong[style*="red"]) {
+  background-color: #fef2f2;
+  color: #991b1b;
+  border-color: #fee2e2;
+}
+
+.board-stats span:has(strong[style*="color: red"]) strong,
+.board-stats span:has(strong[style*="red"]) strong {
+  color: #ef4444 !important; /* Forces uniform red styling cleanly */
+}
 /* --- BASE FORM UTILITIES --- */
 .form-group {
   display: flex;

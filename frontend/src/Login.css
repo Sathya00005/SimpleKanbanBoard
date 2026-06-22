@@ -11,10 +11,10 @@
 
 .auth-form {
   width: 100%;
-  max-width: 380px; /* Snugger, more professional density layout */
+  max-width: 380px;
   background: #ffffff;
   padding: 36px;
-  border-radius: 8px; /* Refined geometric edge instead of bubbly 20px */
+  border-radius: 8px;
   border: 1px solid #e2e8f0;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03), 0 10px 30px rgba(15, 23, 42, 0.04);
   display: flex;
@@ -28,7 +28,7 @@
   font-weight: 700;
   color: #0f172a; /* Deep matte obsidian */
   margin: 0 0 8px 0;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
 .auth-form input {
@@ -73,9 +73,37 @@
   transform: none; /* No shifting behaviors on interactive buttons */
 }
 
-.switch {
+.auth-form button:disabled {
+  background: #cbd5e1;
+  color: #f8fafc;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.auth-form button:disabled:hover {
+  background: #cbd5e1;
+}
+
+.auth-form .secondary-action {
+  background: #ffffff;
+  color: #0f172a;
+  border: 1px solid #e2e8f0;
+  box-shadow: none;
+  margin-top: 0;
+}
+
+.auth-form .secondary-action:hover {
+  background: #f8fafc;
+}
+
+.auth-form .switch {
+  appearance: none;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
   text-align: center;
-  margin-top: 12px;
+  margin: 2px 0 0;
   font-size: 13px;
   font-weight: 500;
   color: #64748b; /* Soft slate tone instead of bright blue hyperlinks */
@@ -83,7 +111,63 @@
   transition: color 0.15s ease;
 }
 
-.switch:hover {
+.auth-form .switch:hover {
+  background: transparent;
   color: #0f172a; /* Clean contrast highlight on user hover */
   text-decoration: none; /* Keeps UI clutter-free */
+}
+
+.auth-alert {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.auth-alert-error {
+  color: #991b1b;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+}
+
+.auth-alert-success {
+  color: #166534;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+}
+
+.password-checklist {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+  list-style: none;
+  margin: -4px 0 2px;
+  padding: 0;
+}
+
+.password-checklist li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 18px;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.password-checklist li span {
+  width: 16px;
+  color: #94a3b8;
+  font-size: 12px;
+  text-align: center;
+}
+
+.password-checklist li.met {
+  color: #166534;
+}
+
+.password-checklist li.met span {
+  color: #16a34a;
 }

@@ -1,3 +1,56 @@
+/* ==========================================================================
+   Custom WipTaskModal Stylesheet (Scroll-Optimized & Flexible)
+   ========================================================================== */
+
+/* --- TASK CARD CONTAINMENT BOX --- */
+/* Encloses all card contents inside a protective box padded at an equal distance from the borders */
+.task-card, .task-card-container-box {
+  padding: 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background-color: #ffffff;
+  box-sizing: border-box;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* --- CENTERED HEADER TASK NAME --- */
+/* Centers the task name text within the header banner block space */
+.task-card-header-name {
+  text-align: center;
+  margin: 0 auto 12px auto;
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+/* --- CENTERED KANBAN CARD TITLE --- */
+/* Centers the title text explicitly and prevents it from leaning or touching edges */
+.kanban-card-title {
+  text-align: center;
+  margin: 0 auto 8px auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.task-labels-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 4px 0 8px;
+}
+
+.task-label-chip {
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 4px 8px;
+  border-radius: 9999px;
+  border: 1px solid #e2e8f0;
+  white-space: nowrap;
+}
+
 /* --- METRICS ROW LAYOUT (Task Card Face) --- */
 .task-card-metrics {
   display: flex;
@@ -5,6 +58,7 @@
   margin-top: 12px;
   padding-top: 10px;
   border-top: 1px solid #f1f5f9; /* Super faint crisp divider */
+  box-sizing: border-box;
 }
 
 /* --- INDIVIDUAL METRIC BADGES --- */
@@ -14,12 +68,13 @@
   gap: 4px;
   font-size: 11px;
   font-weight: 500;
-  padding: 2px 6px;
+  padding: 4px 8px; /* Enhanced padding to keep content off the borders */
   border-radius: 4px;
   background-color: #f8fafc;
   border: 1px solid #f1f5f9;
   color: #64748b; /* Clean neutral slate gray */
   transition: all 0.15s ease;
+  box-sizing: border-box;
 }
 
 .metric-icon {
@@ -50,11 +105,12 @@
 .kanban-card-status {
   font-size: 10px;
   font-weight: 600;
-  padding: 2px 8px;
+  padding: 4px 10px; /* Increased padding to separate text safely from container edges */
   border-radius: 9999px; /* Pill Shape */
   text-transform: uppercase;
   letter-spacing: 0.04em;
   display: inline-block;
+  box-sizing: border-box;
 }
 
 /* Light Muted Color Profiles for individual Workflow Lanes */
@@ -92,7 +148,7 @@
 /* --- MODAL INPUT & INTERACTION ELEMENTS --- */
 .modal-textarea {
   width: 100%;
-  padding: 10px 12px;
+  padding: 12px 14px; /* Increased interior padding so typing doesn't touch edges */
   border: 1px solid #e2e8f0;
   border-radius: 6px;
   min-height: 80px;
@@ -120,12 +176,13 @@
   display: flex;
   justify-content: space-between;
   background-color: #f8fafc;
-  padding: 12px 14px;
+  padding: 12px 16px; /* Optimized layout boundaries */
   border-radius: 6px;
   font-size: 13px;
   color: #475569;
   border: 1px solid #f1f5f9;
   margin-bottom: 16px;
+  box-sizing: border-box;
 }
 
 .metrics-summary-box strong {
@@ -135,11 +192,12 @@
 /* --- STATE TOGGLE BOX CONFIGURATION --- */
 .status-toggle-box {
   margin-top: 12px;
-  padding: 14px;
+  padding: 16px; /* Added balanced padding room inside the card section */
   background: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 6px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  box-sizing: border-box;
 }
 
 .status-toggle-box label {
@@ -154,10 +212,11 @@
 
 .status-indicator {
   font-size: 11px;
-  padding: 2px 6px;
+  padding: 4px 8px; /* Roomy padding to build distinct protective bounds around status indicator text */
   border-radius: 4px;
   font-weight: 600;
   margin-left: 4px;
+  box-sizing: border-box;
 }
 
 .status-indicator.pending { 
@@ -175,7 +234,7 @@
   width: 100%;
   background: #ffffff;
   border: 1px solid #e2e8f0;
-  padding: 8px 12px;
+  padding: 10px 14px; /* Lifted padding slightly for clean vertical clearance */
   border-radius: 6px;
   font-size: 13px;
   font-weight: 500;
@@ -183,6 +242,7 @@
   cursor: pointer;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
   transition: all 0.15s ease;
+  box-sizing: border-box;
 }
 
 .toggle-status-btn:hover {
@@ -193,13 +253,14 @@
 
 .modal-actions-footer {
   margin-top: auto;
-  padding-top: 20px;
+  padding: 20px 24px; /* Strict padding added around footer boundaries */
   display: flex;
   justify-content: flex-end;
+  box-sizing: border-box;
 }
 
 .close-window-btn {
-  padding: 8px 16px;
+  padding: 10px 20px; /* Ensured text has protective space on both left and right edges */
   background: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 6px;
@@ -209,10 +270,61 @@
   cursor: pointer;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
   transition: all 0.15s ease;
+  box-sizing: border-box;
 }
 
 .close-window-btn:hover {
   background: #f8fafc;
   border-color: #cbd5e1;
   color: #0f172a;
+}
+
+/* --- VALIDATION SUMMARIES --- */
+.task-validation-summaries {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+  margin-bottom: 8px;
+  box-sizing: border-box;
+}
+
+.validation-summary {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 8px; /* Clean padding layout bounds */
+  border-radius: 4px;
+  border: 1px solid transparent;
+  box-sizing: border-box;
+}
+
+.validation-summary.grey {
+  background-color: #f1f5f9;
+  border-color: #e2e8f0;
+  color: #64748b;
+}
+
+.validation-summary.green {
+  background-color: #f0fdf4;
+  border-color: #dcfce7;
+  color: #16a34a;
+}
+
+.validation-summary.red {
+  background-color: #fef2f2;
+  border-color: #fee2e2;
+  color: #dc2626;
+}
+
+/* --- FAILURE REASON --- */
+.task-failure-reason {
+  font-size: 11px;
+  color: #dc2626;
+  background-color: #fef2f2;
+  padding: 8px 12px; /* Internal content safe-padding padding boundaries added here */
+  border-radius: 4px;
+  border: 1px solid #fee2e2;
+  margin-top: 8px;
+  margin-bottom: 8px;
+  box-sizing: border-box;
 }

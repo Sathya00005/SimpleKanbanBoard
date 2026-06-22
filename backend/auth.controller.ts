@@ -5,7 +5,7 @@ import { user as dbUser } from './db.js'; // Corrected path to Prisma client ins
 const saltRounds = 12;
 
 export const signup = async (req: Request, res: Response) => {
-  const { email, password } = req.body;
+  const { email, password, username } = req.body;
 
   if (!email || !password) {
     return res.status(400).json({ error: 'Email and password are required' });
@@ -19,7 +19,7 @@ export const signup = async (req: Request, res: Response) => {
   const hashedPassword = await bcrypt.hash(password, saltRounds);
 
   const user = await dbUser.create({
-    data: { email, password: hashedPassword },
+    data: { username: username || email.split('@')[0], email, password: hashedPassword },
   });
 
   // Automatically log in user upon successful sign-up

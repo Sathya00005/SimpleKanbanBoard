@@ -1,82 +1,280 @@
-import type { Task } from './types';
+import { useState } from "react";
+import "./TaskDetailsModal.css";
+import type { Task, ValidationItem } from "./types";
 
 interface TaskDetailsModalProps {
-  task: Task & {
-    timeLogs?: Array<{ hoursSpent: number; description?: string; logDate?: string }>;
-    history?: Array<{ createdAt: string; eventType: string; details: string }>;
-  };
+  task: Task;
+  onClose: () => void;
 }
 
-export default function TaskDetailsModal({ task, onClose }: TaskDetailsModalProps & { onClose: () => void }) {
-  const actualTimeHours = task.timeLogs?.reduce((sum: number, log: any) => sum + Number(log.hoursSpent || 0), 0) || 0;
-  const scheduleInfo = task.startDate || task.endDate || task.effortRequired !== undefined;
-  const deploymentInfo = task.deployedTime || task.deploymentType;
+export default function TaskDetailsModal({
+  task,
+  onClose,
+}: TaskDetailsModalProps) {
+  const [expandedFailedId, setExpandedFailedId] = useState<string | null>(null);
+  
+  // Localized search states for each possible Validation list
+  const [searchFilters, setSearchFilters] = useState<Record<string, string>>({
+    "Acceptance Criteria": "",
+    "Test Cases": "",
+    "Positive Test Cases": "",
+    "Negative Test Cases": "",
+    "Edge Cases": "",
+  });
 
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '520px', padding: '20px', background: '#fff', borderRadius: '8px' }}>
-        <h3>{task.name}</h3>
-        <p style={{ marginTop: '8px' }}><strong>Description:</strong> {task.description || 'No description provided.'}</p>
-        <p><strong>Status:</strong> {task.status}</p>
-        {task.workStatus && <p><strong>Work Status:</strong> {task.workStatus}</p>}
-        {scheduleInfo && (
-          <p>
-            <strong>Schedule:</strong> {task.startDate ? new Date(task.startDate).toLocaleDateString() : '—'} to {task.endDate ? new Date(task.endDate).toLocaleDateString() : '—'}
-            {task.effortRequired !== undefined ? ` · Effort: ${task.effortRequired} hrs` : ''}
-          </p>
-        )}
-        {deploymentInfo && (
-          <p>
-            <strong>Deployment:</strong> {task.deployedTime ? new Date(task.deployedTime).toLocaleString() : 'Not deployed yet'}
-            {task.deploymentType ? ` · Type: ${task.deploymentType}` : ''}
-          </p>
-        )}
-        {task.testCases && task.testCases.length > 0 && (
-          <div style={{ marginTop: '12px' }}>
-            <strong>Test Cases:</strong>
-            <ul style={{ marginTop: '6px', paddingLeft: '18px', fontSize: '12px' }}>
-              {task.testCases.map((tc, index) => (
-                <li key={index} style={{ marginBottom: '4px' }}>{tc}</li>
-              ))}
-            </ul>
+  const actualTimeHours =
+    task.timeLogs?.reduce(
+      (sum, log) => sum + Number(log.hoursSpent || 0),
+      0
+    ) || 0;
+
+  const scheduleInfo =
+    task.startDate ||
+    task.endDate ||
+    task.effortRequired !== undefined;
+
+  const handleSearchChange = (title: string, value: string) => {
+    setSearchFilters((prev) => ({ ...prev, [title]: value }));
+  };
+
+  const renderSectionColumn = (title: string, items?: ValidationItem[]) => {
+    if (!items || items.length === 0) return null;
+
+    const searchTerm = searchFilters[title] || "";
+    const cleanSearchTerm = searchTerm.toLowerCase().trim();
+    
+    // Calculate dynamic statistics for this section column
+    const stats = items.reduce(
+      (acc, item) => {
+        if (item.status === "passed") acc.passed++;
+        else if (item.status === "failed") acc.failed++;
+        else acc.pending++;
+        return acc;
+      },
+      { passed: 0, failed: 0, pending: 0 }
+    );
+
+    // Filter items based on item text OR matched label strings
+    const filteredItems = items.filter((item) => {
+      const matchesText = item.text?.toLowerCase().includes(cleanSearchTerm);
+
+      // Scans label entries safely and tolerates malformed API data.
+      const matchesLabel = Array.isArray(item.labels)
+        ? item.labels.some((label) =>
+            String(label).toLowerCase().includes(cleanSearchTerm)
+          )
+        : false;
+
+      return matchesText || matchesLabel;
+    });
+
+    return (
+      <div className="validation-column">
+        <div className="task-section-header">
+          <h4 className="task-section-title">{title}</h4>
+          <div className="section-mini-stats">
+            <span className="mini-badge active" title="Pending">P: {stats.pending}</span>
+            <span className="mini-badge passed" title="Passed">✓: {stats.passed}</span>
+            <span className="mini-badge failed" title="Failed">✕: {stats.failed}</span>
           </div>
-        )}
+        </div>
 
-        <p style={{ marginTop: '10px' }}><strong>Total Effort Logged:</strong> {actualTimeHours.toFixed(1)} hours</p>
+        <div className="section-search-wrapper">
+          <input
+            type="text"
+            placeholder={`Filter by content or label...`}
+            className="section-search-input"
+            value={searchTerm}
+            onChange={(e) => handleSearchChange(title, e.target.value)}
+          />
+        </div>
 
-        <div style={{ marginTop: '18px' }}>
-          <h4 style={{ marginBottom: '8px' }}>Time Log Entries</h4>
-          <div style={{ maxHeight: '136px', overflowY: 'auto', border: '1px solid #e5e7eb', padding: '10px', borderRadius: '4px', backgroundColor: '#f9fafb' }}>
-            {task.timeLogs && task.timeLogs.length > 0 ? (
-              task.timeLogs.map((log: any, idx: number) => (
-                <div key={idx} style={{ marginBottom: '10px' }}>
-                  <div style={{ fontSize: '12px', color: '#6b7280' }}>{log.logDate ? new Date(log.logDate).toLocaleString() : 'Unknown date'}</div>
-                  <div style={{ fontSize: '13px' }}>⏱ {Number(log.hoursSpent).toFixed(1)} hrs — {log.description || 'No notes'}</div>
+        <div className="validation-scroll-container">
+          <div className="validation-list">
+            {filteredItems.map((item, index) => (
+              <div key={item.id || index} className={`validation-item-card ${item.status}`}>
+                <div
+                  className="validation-item-header"
+                  style={{ 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    gap: '8px', 
+                    cursor: item.status === "failed" ? "pointer" : "default" 
+                  }}
+                  onClick={() => {
+                    if (item.status === "failed") {
+                      setExpandedFailedId(expandedFailedId === item.id ? null : item.id);
+                    }
+                  }}
+                >
+                  <span className="validation-item-text">
+                    {item.status === "passed" && "✓ "}
+                    {item.status === "failed" && "✖ "}
+                    {item.status === "pending" && "○ "}
+                    {item.text}
+                  </span>
+
+                  {/* 🏷️ DYNAMIC VISUAL CHIPS DISPLAY FOR GITHUB LABELS */}
+                  {item.labels && item.labels.length > 0 && (
+                    <div className="validation-item-labels" style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginTop: "4px" }}>
+                      {item.labels.map((label, lIdx) => (
+                        <span 
+                          key={lIdx} 
+                          className="item-label-chip"
+                          style={{
+                            fontSize: "11px",
+                            fontWeight: "600",
+                            background: "rgba(88, 166, 255, 0.12)",
+                            color: "#58a6ff",
+                            padding: "2px 8px",
+                            borderRadius: "4px",
+                            border: "1px solid rgba(88, 166, 255, 0.2)"
+                          }}
+                        >
+                          {label}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              ))
-            ) : (
-              <p style={{ fontSize: '12px', color: '#9ca3af' }}>No time logs recorded yet.</p>
+
+                {item.status === "failed" && expandedFailedId === item.id && (
+                  <div className="validation-item-failure">
+                    <p><strong>Failed By:</strong> {item.failedBy || "Tester"}</p>
+                    <p><strong>Failed At:</strong> {item.failedAt ? new Date(item.failedAt).toLocaleString() : "Unknown"}</p>
+                    <p><strong>Reason:</strong> {item.failureReason || "No reason provided"}</p>
+                    {item.testerNotes && <p><strong>Tester Notes:</strong> {item.testerNotes}</p>}
+                  </div>
+                )}
+              </div>
+            ))}
+            {filteredItems.length === 0 && (
+              <p className="task-empty-inline">No matching items found.</p>
             )}
           </div>
         </div>
+      </div>
+    );
+  };
 
-        <h4 style={{ marginTop: '16px', marginBottom: '8px' }}>History Logs</h4>
-        <div style={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid #e5e7eb', padding: '8px', borderRadius: '4px', backgroundColor: '#f9fafb' }}>
-          {task.history && task.history.length > 0 ? (
-            task.history.map((log: any, idx: number) => (
-              <div key={idx} style={{ fontSize: '12px', marginBottom: '8px', borderBottom: '1px solid #f3f4f6', paddingBottom: '6px' }}>
-                <div style={{ color: '#6b7280', marginBottom: '4px' }}>{log.createdAt ? new Date(log.createdAt).toLocaleString() : 'Unknown date'}</div>
-                <div><strong>{log.eventType}</strong> — {log.details}</div>
+  return (
+    <div className="task-modal-overlay" onClick={onClose}>
+      <div className="task-modal-content board-layout-view" onClick={(e) => e.stopPropagation()}>
+        
+        <div className="task-modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h2 className="task-modal-title">{task.name}</h2>
+          <button
+            type="button"
+            className="task-modal-icon-close"
+            onClick={onClose}
+            aria-label="Close task details"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', color: '#8b949e' }}
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="board-main-container">
+          
+          {/* LEFT SIDEBAR */}
+          <aside className="board-side-panel">
+            <div className="task-section">
+              <h4 className="task-section-title" style={{ marginBottom: '8px' }}>Overview</h4>
+              <p className="task-info">
+                <strong>Description:</strong> {task.description || "No description provided."}
+              </p>
+              <p className="task-info">
+                <strong>Status:</strong> <span className="status-pill">{task.status}</span>
+              </p>
+              {task.workStatus && (
+                <p className="task-info">
+                  <strong>Work Status:</strong> {task.workStatus}
+                </p>
+              )}
+              {scheduleInfo && (
+                <p className="task-info">
+                  <strong>Schedule:</strong>{" "}
+                  {task.startDate ? new Date(task.startDate).toLocaleDateString() : "—"}
+                  {" to "}
+                  {task.endDate ? new Date(task.endDate).toLocaleDateString() : "—"}
+                  {task.effortRequired !== undefined && ` · Effort: ${task.effortRequired} hrs`}
+                </p>
+              )}
+              <p className="task-info">
+                <strong>Total Effort Logged:</strong> {actualTimeHours.toFixed(1)} hours
+              </p>
+            </div>
+
+            {/* Technical Notes */}
+            {task.technicalNotes && task.technicalNotes.length > 0 && (
+              <div className="task-section">
+                <h4 className="task-section-title" style={{ marginBottom: '8px' }}>Technical Notes</h4>
+                <div className="task-box task-scroll-box">
+                  <ul style={{ paddingLeft: '16px', margin: 0, fontSize: '13px', color: '#c9d1d9' }}>
+                    {task.technicalNotes.map((note, idx) => (
+                      <li key={note.id || idx} className="task-history-item" style={{ borderBottom: 'none', padding: '4px 0' }}>
+                        {note.text}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               </div>
-            ))
-          ) : (
-            <p style={{ fontSize: '12px', color: '#9ca3af' }}>No history logged yet.</p>
-          )}
+            )}
+
+            {/* Definition of Done */}
+            {task.definitionOfDone && task.definitionOfDone.length > 0 && (
+              <div className="task-section">
+                <h4 className="task-section-title" style={{ marginBottom: '8px' }}>Definition Of Done</h4>
+                <div className="task-box task-scroll-box">
+                  <ul style={{ paddingLeft: '16px', margin: 0, fontSize: '13px', color: '#c9d1d9' }}>
+                    {task.definitionOfDone.map((item, idx) => (
+                      <li key={item.id || idx} className="task-history-item" style={{ borderBottom: 'none', padding: '4px 0' }}>
+                        <span style={{ color: item.status === "passed" ? "#238636" : "#8b949e", marginRight: '6px' }}>
+                          {item.status === "passed" ? "✓" : "○"}
+                        </span>
+                        {item.text}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            )}
+
+            {/* Dependencies */}
+            {task.dependencies && task.dependencies.length > 0 && (
+              <div className="task-section">
+                <h4 className="task-section-title" style={{ marginBottom: '8px' }}>Dependencies</h4>
+                <div className="task-box task-scroll-box">
+                  <ul style={{ paddingLeft: '16px', margin: 0, fontSize: '13px', color: '#c9d1d9' }}>
+                    {task.dependencies.map((dep, idx) => (
+                      <li key={dep.id || idx} className="task-history-item" style={{ borderBottom: 'none', padding: '4px 0' }}>
+                        {dep.text} <span className="status-pill" style={{ fontSize: '10px', padding: '2px 6px' }}>{dep.status}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            )}
+          </aside>
+
+          {/* RIGHT LANES: Render active filter lanes */}
+          <main className="board-columns-deck">
+            {renderSectionColumn("Acceptance Criteria", task.acceptanceCriteria)}
+            {renderSectionColumn("Test Cases", task.testCases)}
+            {renderSectionColumn("Positive Test Cases", task.positiveTestCases)}
+            {renderSectionColumn("Negative Test Cases", task.negativeTestCases)}
+            {renderSectionColumn("Edge Cases", task.edgeCases)}
+          </main>
+
         </div>
 
-        <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end' }}>
-          <button type="button" className="btn-secondary" onClick={onClose} style={{ padding: '6px 12px', cursor: 'pointer' }}>Close</button>
-        </div>
+        {/* FIXED FOOTER */}
+        <footer className="task-footer">
+          <button type="button" className="task-close-btn" onClick={onClose}>
+            Close
+          </button>
+        </footer>
+
       </div>
     </div>
   );
