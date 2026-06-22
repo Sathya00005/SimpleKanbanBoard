@@ -1,9 +1,9 @@
 /* --- BOARD CANVAS CONTAINER --- */
 .board-container {
   min-height: 100vh;
-  background-color: #f8fafc; /* Crisp slate-light canvas */
-  padding: 32px;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: var(--color-bg-primary); 
+  padding: 48px;
+  font-family: var(--font-family-base);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -11,93 +11,110 @@
 .board-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 32px;
+  align-items: flex-end;
+  margin-bottom: 48px;
 }
 
 .board-header h2 {
-  font-size: 28px;
-  font-weight: 700;
-  color: #0f172a; /* Deep ink tone */
-  margin: 0 0 6px 0;
+  font-size: 36px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0;
   letter-spacing: -0.02em;
 }
 
 .board-header p {
-  color: #64748b;
-  font-size: 14px;
-  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 16px;
+  margin: 4px 0 0 0;
 }
 
 .board-controls {
   display: flex;
-  gap: 12px;
+  gap: 16px;
 }
 
 .board-controls input {
-  padding: 10px 14px;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 14px;
-  width: 240px;
-  background-color: #ffffff;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
-  transition: all 0.15s ease;
+  padding: 16px 24px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-medium);
+  font-size: 16px;
+  width: 320px;
+  background-color: var(--color-surface-white);
+  transition: all 0.2s ease;
 }
 
 .board-controls input:focus {
   outline: none;
-  border-color: #cbd5e1;
-  box-shadow: 0 0 0 2px rgba(241, 245, 249, 0.8);
+  border-color: var(--color-text-primary);
 }
 
 /* --- BUTTON UI ENGINE --- */
 .btn-primary,
 .board-controls button[type="submit"],
 .modal-actions button[type="submit"] {
-  background: #0f172a;
-  color: #ffffff;
+  background: var(--color-surface-dark);
+  color: var(--color-surface-white);
   border: none;
-  padding: 6px 12px; /* reduced from 10px 16px */
-  border-radius: 6px; /* reduced from 8px */
-  font-size: 12px; /* reduced from 14px */
+  padding: 12px 24px;
+  border-radius: var(--radius-pill);
+  font-size: 16px;
   font-weight: 500;
   cursor: pointer;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-  transition: background 0.15s ease;
+  transition: all 0.2s ease;
 }
 
 .btn-primary:hover, 
 .board-controls button[type="submit"]:hover, 
 .modal-actions button[type="submit"]:hover {
-  background: #1e293b;
+  background: #000000;
 }
 
 .btn-secondary,
 .board-controls button:not([type="submit"]),
 .modal-actions button[type="button"] {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  color: #475569;
-  padding: 6px 12px; /* reduced from 10px 16px */
-  border-radius: 6px;
-  font-size: 12px; /* reduced from 14px */
+  background: var(--color-surface-white);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+  padding: 12px 24px;
+  border-radius: var(--radius-pill);
+  font-size: 16px;
   font-weight: 500;
   cursor: pointer;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-  transition: all 0.15s ease;
+  transition: all 0.2s ease;
 }
 
 .btn-secondary:hover, 
 .board-controls button:not([type="submit"]):hover, 
 .modal-actions button[type="button"]:hover {
-  background: #f8fafc;
-  border-color: #cbd5e1;
-  color: #0f172a;
+  background: #F3F4F6;
 }
 
 /* --- KANBAN MATRIX GRID LAYOUT --- */
 .kanban-grid {
+  display: flex;
+  gap: var(--spacing-column-gap);
+  overflow-x: auto;
+  padding-bottom: 24px;
+  align-items: flex-start;
+}
+
+.kanban-column {
+  background-color: var(--color-surface-blue);
+  border-radius: var(--radius-large);
+  padding: 24px;
+  min-width: 320px;
+  flex: 1;
+}
+
+.kanban-column h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 16px 0;
+  color: var(--color-text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 16px;

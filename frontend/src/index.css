@@ -10,6 +10,17 @@
 
   /* Typography */
   --font-family-base: 'Inter', system-ui, -apple-system, sans-serif;
+
+  /* Spacing & Sizing */
+  --spacing-base: 8px;
+  --spacing-column-gap: 24px;
+  --spacing-card-padding: 20px;
+
+  /* Border Radius */
+  --radius-small: 8px;
+  --radius-medium: 24px;
+  --radius-large: 32px;
+  --radius-pill: 9999px;
 }
 
 body {
