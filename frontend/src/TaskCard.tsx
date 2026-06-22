@@ -27,7 +27,8 @@ function getWipColorState(
   logged: number,
   allocated: number
 ): WipColorState {
-  if (status !== "IN_PROGRESS") return null;
+  const norm = (status || "").toLowerCase().trim().replace(/\s+/g, '-');
+  if (norm !== "in-progress" && norm !== "work-in-progress" && norm !== "wip") return null;
   if (allocated <= 0) return null; // No estimate → no colour signal
   if (logged > allocated) return "overtime";
   if (logged === allocated) return "on-track";
@@ -56,13 +57,6 @@ export default function TaskCard({ task }: TaskCardProps) {
   const scheduledEffort = task.effortRequired || 0;
   const statusClass = normalizeValue(task.status);
   const wipState = getWipColorState(task.status, totalActualEffort, scheduledEffort);
-
-  const hasValidationItems =
-    (task.acceptanceCriteria?.length || 0) > 0 ||
-    (task.positiveTestCases?.length || 0) > 0 ||
-    (task.negativeTestCases?.length || 0) > 0 ||
-    (task.edgeCases?.length || 0) > 0 ||
-    (task.definitionOfDone?.length || 0) > 0;
 
   const allValidationItems = [
     ...(task.acceptanceCriteria || []),
@@ -116,6 +110,12 @@ export default function TaskCard({ task }: TaskCardProps) {
         </div>
       )}
 
+      {task.description && (
+        <p className="kanban-card-description" style={{ fontSize: '12px', color: 'var(--color-text-secondary)', margin: '8px 0', lineHeight: '1.4' }}>
+          {task.description.length > 100 ? `${task.description.substring(0, 100)}...` : task.description}
+        </p>
+      )}
+
       <div className="task-card-metrics">
         <div className="metric-badge">
           <span className="metric-icon">Est:</span> {scheduledEffort}h
@@ -124,170 +124,15 @@ export default function TaskCard({ task }: TaskCardProps) {
           <span className="metric-icon">Log:</span> {totalActualEffort}h
         </div>
       </div>
-    </li>
-  );
-}
-                className="task-label-chip"
-                style={{
-                  borderColor: labelColor,
-                  color: "#0f172a",
-                  backgroundColor: `${labelColor}22`,
-                }}
-                title={label.description || label.name}
-              >
-                {label.name}
-              </span>
-            );
-          })}
-        </div>
-      )}
 
-      {task.description && (
-        <p
-          className="kanban-card-description"
-          style={{
-            fontSize: '12px',
-            color: '#475569',
-            margin: '6px 0 8px 0',
-            lineHeight: '1.4',
-            display: '-webkit-box',
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: 'vertical',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-          }}
-        >
-          {task.description}
-        </p>
-      )}
-
-      {hasValidationItems && (
-        <div
-          className="task-validation-summaries-list"
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '4px',
-            margin: '8px 0',
-            fontSize: '11px',
-            color: '#475569',
-            background: '#f8fafc',
-            padding: '8px',
-            borderRadius: '4px'
-          }}
-        >
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', fontWeight: '600' }}>
-            {task.acceptanceCriteria && task.acceptanceCriteria.length > 0 && <span>AC: {task.acceptanceCriteria.length}</span>}
-            {task.positiveTestCases && task.positiveTestCases.length > 0 && <span>PTC: {task.positiveTestCases.length}</span>}
-            {task.negativeTestCases && task.negativeTestCases.length > 0 && <span>NTC: {task.negativeTestCases.length}</span>}
-            {task.edgeCases && task.edgeCases.length > 0 && <span>EC: {task.edgeCases.length}</span>}
-          </div>
-          <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
-            <span style={{ color: '#16a34a' }}>Passed: {passedCount}</span>
-            <span style={{ color: '#dc2626' }}>Failed: {failedCount}</span>
-            <span style={{ color: '#ca8a04' }}>Pending: {pendingCount}</span>
-          </div>
-        </div>
-      )}
-
-      {failedCount > 0 && (
-        <div className="task-failure-reason" style={{ color: '#dc2626', fontSize: '11px', marginTop: '4px' }}>
-          <strong>Failing validations detected</strong>
-        </div>
-      )}
-
-      <div className="task-card-metrics" style={{ marginTop: '12px' }}>
-        <div className="metric-badge budgeted" title="Scheduled Effort">
-          <span className="metric-icon">⏱️</span>
-          <span>Est: {scheduledEffort}h</span>
-        </div>
-        <div
-          className={`metric-badge logged ${
-            totalActualEffort > scheduledEffort ? 'overtime' : ''
-          }`}
-        >
-          <span className="metric-icon">⏳</span>
-          <span>Logged: {totalActualEffort}h</span>
-        </div>
-      </div>
-
-      {/* ── WIP colour-state indicator banners ── */}
       {wipState === "overtime" && (
-        <div
-          className="wip-overtime-block"
-          style={{
-            marginTop: '10px',
-            padding: '8px 10px',
-            background: '#fef2f2',
-            border: '1px solid #fca5a5',
-            borderRadius: '6px',
-          }}
-        >
-          <p style={{ fontSize: '11px', fontWeight: '700', color: '#dc2626', margin: '0 0 6px 0' }}>
-            ⚠ Overtime — logged {totalActualEffort}h exceeds estimate {scheduledEffort}h
-          </p>
-          <label
-            htmlFor={`overtime-reason-${task.id}`}
-            style={{ fontSize: '11px', fontWeight: '600', color: '#b91c1c', display: 'block', marginBottom: '4px' }}
-          >
-            Reason (required):
-          </label>
-          <textarea
-            id={`overtime-reason-${task.id}`}
-            rows={2}
-            placeholder="Explain why this task went over the allocated effort..."
+        <div className="wip-overtime-entry" style={{ marginTop: '8px' }}>
+           <textarea
+            style={{ width: '100%', fontSize: '11px', padding: '4px', borderRadius: '4px', border: '1px solid #fca5a5' }}
+            placeholder="Reason for overtime..."
             value={overtimeReason}
             onChange={(e) => setOvertimeReason(e.target.value)}
-            style={{
-              width: '100%',
-              fontSize: '11px',
-              padding: '4px 6px',
-              borderRadius: '4px',
-              border: overtimeReason.trim() ? '1px solid #fca5a5' : '2px solid #dc2626',
-              background: '#fff',
-              color: '#1e293b',
-              resize: 'vertical',
-              boxSizing: 'border-box',
-            }}
           />
-          {!overtimeReason.trim() && (
-            <p style={{ fontSize: '10px', color: '#dc2626', margin: '3px 0 0 0' }}>
-              A reason is required before continuing.
-            </p>
-          )}
-        </div>
-      )}
-
-      {wipState === "on-track" && (
-        <div
-          style={{
-            marginTop: '10px',
-            padding: '6px 10px',
-            background: '#f0fdf4',
-            border: '1px solid #86efac',
-            borderRadius: '6px',
-            fontSize: '11px',
-            fontWeight: '600',
-            color: '#15803d',
-          }}
-        >
-          ✓ On track — effort matches estimate exactly
-        </div>
-      )}
-
-      {wipState === "under-budget" && (
-        <div
-          style={{
-            marginTop: '10px',
-            padding: '6px 10px',
-            background: '#f8fafc',
-            border: '1px solid #e2e8f0',
-            borderRadius: '6px',
-            fontSize: '11px',
-            color: '#64748b',
-          }}
-        >
-          ○ Under budget — {totalActualEffort}h of {scheduledEffort}h used
         </div>
       )}
     </li>

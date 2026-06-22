@@ -622,7 +622,22 @@ export default function Board({ setIsLoggedIn }: BoardProps) {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
-          <button className="btn-primary" onClick={() => setIsModalOpen(true)}>+ Create Task</button>
+          <select 
+            className="toolbar-dropdown" 
+            value={sortOrder} 
+            onChange={(e) => setSortOrder(e.target.value)}
+            style={{ padding: '12px 16px', borderRadius: 'var(--radius-pill)', border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface-white)', fontSize: '14px' }}
+          >
+            <option value="failed-first">Failed First</option>
+            <option value="priority">Priority</option>
+            <option value="recently-updated">Updated</option>
+            <option value="recently-created">Created</option>
+          </select>
+          <label className="toolbar-toggle" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', color: 'var(--color-text-secondary)', cursor: 'pointer' }}>
+            <input type="checkbox" checked={showClosed} onChange={(e) => setShowClosed(e.target.checked)} />
+            Closed
+          </label>
+          <button className="btn-primary" onClick={() => setIsModalOpen(true)}>+ Task</button>
           <button className="btn-secondary" onClick={() => setWorkspaceInitialized(false)}>Back</button>
           <button className="btn-secondary" onClick={logout}>Logout</button>
         </div>
