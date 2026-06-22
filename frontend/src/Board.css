@@ -115,6 +115,9 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
+
+/* Added the missing selector and opening brace here */
+.kanban-board {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 16px;
